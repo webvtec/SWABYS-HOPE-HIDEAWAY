@@ -355,30 +355,58 @@
     .mobile-menu {
       display: none;
       position: fixed;
-      inset: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      width: 280px;
+      max-width: 75vw;
       z-index: 999;
-      background: rgba(27,22,17,0.95);
-      backdrop-filter: blur(24px);
+      background: var(--white);
       flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-2xl);
+      padding: calc(var(--nav-height) + var(--space-xl)) var(--space-xl) var(--space-xl);
+      gap: var(--space-xs);
+      box-shadow: -8px 0 40px rgba(27,22,17,0.15);
+      transform: translateX(100%);
+      transition: transform 0.4s var(--ease-out);
+    }
+
+    .mobile-menu.open {
+      display: flex;
+      transform: translateX(0);
+    }
+
+    .mobile-menu-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 998;
+      background: rgba(27,22,17,0.4);
       opacity: 0;
       transition: opacity 0.4s var(--ease-out);
     }
 
-    .mobile-menu.open { display: flex; opacity: 1; }
-
-    .mobile-menu .nav-link {
-      color: var(--white);
-      font-family: var(--font-display);
-      font-size: var(--text-3xl);
-      font-weight: 400;
-      letter-spacing: 0.02em;
-      text-transform: none;
+    .mobile-menu-backdrop.open {
+      display: block;
+      opacity: 1;
     }
 
-    .mobile-menu .nav-link:hover { color: var(--orange-400); }
+    .mobile-menu .nav-link {
+      color: var(--text-primary);
+      font-family: var(--font-display);
+      font-size: var(--text-lg);
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      text-transform: none;
+      padding: var(--space-md) 0;
+      border-bottom: 1px solid var(--warm-100);
+    }
+
+    .mobile-menu .nav-link:hover { color: var(--accent); }
+
+    .mobile-menu .btn-primary {
+      margin-top: var(--space-lg);
+      justify-content: center;
+    }
 
     /* ═══════════════════════════════════════════
        HERO SECTION
@@ -477,7 +505,7 @@
       display: inline-flex;
       align-items: center;
       gap: var(--space-sm);
-      padding: 16px 36px;
+      padding: 14px 28px;
       background: var(--accent);
       color: var(--white);
       font-size: var(--text-sm);
@@ -487,6 +515,7 @@
       border-radius: var(--radius-sm);
       transition: all 0.4s var(--ease-out);
       box-shadow: 0 4px 20px rgba(232,117,26,0.3);
+      width: auto;
     }
 
     .btn-primary:hover {
@@ -1501,7 +1530,7 @@
 
       .hero { min-height: 600px; }
       .hero-content { padding: 0 var(--space-md) var(--space-3xl); }
-      .hero-actions { flex-direction: column; align-items: stretch; }
+      .hero-actions { flex-direction: column; align-items: flex-start; }
       .hero-scroll { display: none; }
 
       .intro-grid { grid-template-columns: 1fr; gap: var(--space-2xl); }
@@ -1566,13 +1595,14 @@
   </nav>
 
   <!-- Mobile Menu -->
+  <div class="mobile-menu-backdrop" id="mobileBackdrop" onclick="toggleMobileMenu()"></div>
   <div class="mobile-menu" id="mobileMenu">
     <a class="nav-link" onclick="navigateTo('home'); toggleMobileMenu();">Home</a>
     <a class="nav-link" onclick="navigateTo('rooms'); toggleMobileMenu();">Accommodation</a>
     <a class="nav-link" onclick="navigateTo('events'); toggleMobileMenu();">Weddings &amp; Events</a>
     <a class="nav-link" href="#">Dining</a>
     <a class="nav-link" href="#">Gallery</a>
-    <button class="btn-primary" onclick="scrollToBooking(); toggleMobileMenu();">Book Now</button>
+    <button class="btn-primary" onclick="navigateTo('rooms'); toggleMobileMenu();">Book Now</button>
   </div>
 
 
@@ -1599,7 +1629,7 @@
       </div>
 
       <div class="hero-content">
-        <h1 class="hero-tagline" style="color:#7C3AED;">Use Our <em style="color:#A78BFA;">Hideaway</em><br/>for Your Getaway</h1>
+        <h1 class="hero-tagline" style="color:#000000;">Use Our <em style="color:#1a1a1a;">Hideaway</em><br/>for Your Getaway</h1>
         <p class="hero-description">An intimate boutique retreat perched in Jamaica's cool, tranquil hills — where warmth, elegance, and panoramic beauty meet.</p>
         <div class="hero-actions">
           <button class="btn-primary" onclick="navigateTo('rooms')">
@@ -1642,10 +1672,6 @@
           </div>
           <div class="intro-image">
             <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=85&auto=format" alt="Elegant boutique hotel interior with warm lighting" />
-            <div class="intro-image-badge">
-              <span>Boutique Experience</span>
-              <small>Intimate stays, maximum 30 guests</small>
-            </div>
           </div>
         </div>
       </div>
@@ -2241,10 +2267,23 @@
        ───────────────────────────────────────── */
     function toggleMobileMenu() {
       const menu = document.getElementById('mobileMenu');
+      const backdrop = document.getElementById('mobileBackdrop');
       const toggle = document.getElementById('navToggle');
-      menu.classList.toggle('open');
-      toggle.classList.toggle('open');
-      document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+      const isOpen = menu.classList.contains('open');
+
+      if (isOpen) {
+        menu.style.transform = 'translateX(100%)';
+        backdrop.classList.remove('open');
+        toggle.classList.remove('open');
+        document.body.style.overflow = '';
+        setTimeout(() => { menu.classList.remove('open'); }, 400);
+      } else {
+        menu.classList.add('open');
+        backdrop.classList.add('open');
+        toggle.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        requestAnimationFrame(() => { menu.style.transform = 'translateX(0)'; });
+      }
     }
 
 
