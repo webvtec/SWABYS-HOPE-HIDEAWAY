@@ -221,15 +221,15 @@
       height: var(--nav-height);
       display: flex;
       align-items: center;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(20px) saturate(1.8);
+      -webkit-backdrop-filter: blur(20px) saturate(1.8);
       transition: background var(--duration) var(--ease-out),
-                  box-shadow var(--duration) var(--ease-out),
-                  backdrop-filter var(--duration) var(--ease-out);
+                  box-shadow var(--duration) var(--ease-out);
     }
 
     .nav.scrolled {
-      background: rgba(255,255,255,0.92);
-      backdrop-filter: blur(20px) saturate(1.8);
-      -webkit-backdrop-filter: blur(20px) saturate(1.8);
+      background: rgba(255,255,255,0.85);
       box-shadow: 0 1px 0 var(--border);
     }
 
@@ -1570,7 +1570,7 @@
   <nav class="nav" id="mainNav">
     <div class="nav-inner">
       <a href="#" class="nav-brand" onclick="navigateTo('home')">
-        <span class="nav-brand-name">Swaby's Hope Hideaway</span>
+        <span class="nav-brand-name">Swaby's Hope Hideaway LLC</span>
         <span class="nav-brand-sub">Spur Tree, Jamaica</span>
       </a>
 
@@ -1630,7 +1630,7 @@
 
       <div class="hero-content">
         <h1 class="hero-tagline" style="color:#FFFFFF;">Use Our <em style="color:#FFFFFF;">Hideaway</em><br/>for Your Getaway</h1>
-        <p class="hero-description">An intimate boutique retreat perched in Jamaica's cool, tranquil hills where warmth, elegance, and panoramic beauty meet.</p>
+        <p class="hero-description">An intimate boutique retreat perched in Jamaica's cool, tranquil hills — where warmth, elegance, and panoramic beauty meet.</p>
         <div class="hero-actions">
           <button class="btn-primary" onclick="navigateTo('rooms')">
             Explore Our Rooms
@@ -1649,9 +1649,7 @@
     <section class="features">
       <div class="container">
         <div class="features-header">
-          <div class="section-eyebrow">Experience</div>
           <h2 class="section-title">Your Hideaway Awaits</h2>
-          <p class="section-subtitle">Every corner of our property has been crafted to delight — from sunlit rooms to the oak-lined bar.</p>
         </div>
         <div class="features-grid">
           <!-- Boutique Rooms -->
@@ -1713,22 +1711,7 @@
               Perched above the clouds in Spur Tree, Mandeville, Swaby's Hope Hideaway is more than a hotel — it is a feeling. Cool mountain breezes carry the scent of wild coffee and tropical blooms through every room, while panoramic views of the Manchester hills stretch endlessly before you. Here, Jamaican hospitality isn't performed. It's lived.
             </p>
             <div class="intro-stats">
-              <div>
-                <div class="intro-stat-number">2,200ft</div>
-                <div class="intro-stat-label">Above Sea Level</div>
-              </div>
-              <div>
-                <div class="intro-stat-number">72°F</div>
-                <div class="intro-stat-label">Year-Round Average</div>
-              </div>
-              <div>
-                <div class="intro-stat-number">4.9</div>
-                <div class="intro-stat-label">Guest Rating</div>
-              </div>
             </div>
-          </div>
-          <div class="intro-image">
-            <img src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=85&auto=format" alt="Elegant boutique hotel interior with warm lighting" />
           </div>
         </div>
       </div>
@@ -1757,7 +1740,7 @@
 
     <section class="page-hero">
       <div class="page-hero-bg">
-        <img src="https://images.unsplash.com/photo-1590490360182-c33d955e5bbf?w=1920&q=85&auto=format" alt="Boutique hotel room with mountain view" />
+        <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1920&q=85&auto=format" alt="Boutique hotel room with mountain view" />
       </div>
       <div class="page-hero-content">
         <div class="section-eyebrow">Accommodation</div>
@@ -2001,7 +1984,7 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="nav-brand">
-            <span class="nav-brand-name">Swaby's Hope Hideaway</span>
+            <span class="nav-brand-name">Swaby's Hope Hideaway LLC</span>
             <span class="nav-brand-sub">Boutique Hotel · Jamaica</span>
           </div>
           <p class="footer-brand-desc" style="margin-top:var(--space-lg);">
@@ -2039,7 +2022,7 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <span>&copy; 2026 Swaby's Hope Hideaway Ltd. All rights reserved.</span>
+        <span>&copy; 2026 Swaby's Hope Hideaway LLC. All rights reserved.</span>
         <div class="footer-social">
           <a href="#" aria-label="Instagram">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
