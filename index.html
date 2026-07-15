@@ -13,7 +13,8 @@
   <script type="module">
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js';
     import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js';
-    import { getAuth, signInAnonymously, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-auth.js';
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-storage.js';
+    import { getAuth, signInAnonymously, signInWithEmailAndPassword, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-auth.js';
 
     const firebaseConfig = {
       apiKey: "AIzaSyCxRadGAXnaBOfUHABUPIgG3_XUyH0a1vs",
@@ -26,6 +27,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const storage = getStorage(app);
     const auth = getAuth(app);
 
     signInAnonymously(auth).catch((error) => {
@@ -34,78 +36,104 @@
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log('Guest session active:', user.uid);
         window._firebaseUser = user;
       }
     });
 
-    window._fb = { db, auth, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp };
+    window._fb = { db, storage, auth, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, ref, uploadBytesResumable, getDownloadURL, deleteObject, signInWithEmailAndPassword, signOut };
+
+    // Load site images from Firebase on startup
+    window.addEventListener('load', async () => {
+      await loadSiteImages();
+    });
+
+    async function loadSiteImages() {
+      try {
+        const { db, collection, getDocs } = window._fb;
+        const snap = await getDocs(collection(db, 'site_images'));
+        const images = {};
+        snap.forEach(d => {
+          const data = d.data();
+          images[data.slot] = data.url;
+        });
+        window._siteImages = images;
+        applySiteImages(images);
+      } catch(e) {
+        console.warn('Could not load site images:', e);
+        window._siteImages = {};
+      }
+    }
+
+    function applySiteImages(images) {
+      // Feature cards
+      const slots = {
+        'feature_boutique_rooms': document.querySelector('.feature-card[data-slot="feature_boutique_rooms"] img'),
+        'feature_restaurant': document.querySelector('.feature-card[data-slot="feature_restaurant"] img'),
+        'feature_event_hall': document.querySelector('.feature-card[data-slot="feature_event_hall"] img'),
+        'feature_scenic_views': document.querySelector('.feature-card[data-slot="feature_scenic_views"] img'),
+        'rooms_page_hero': document.querySelector('#page-rooms .page-hero-bg img'),
+        'events_page_hero': document.querySelector('#page-events .page-hero-bg img'),
+        'event_weddings': document.querySelector('.event-card[data-slot="event_weddings"] img'),
+        'event_corporate': document.querySelector('.event-card[data-slot="event_corporate"] img'),
+        'event_celebrations': document.querySelector('.event-card[data-slot="event_celebrations"] img'),
+      };
+      Object.entries(slots).forEach(([slot, el]) => {
+        if (el && images[slot]) el.src = images[slot];
+      });
+    }
+
+    window._loadSiteImages = loadSiteImages;
+    window._applySiteImages = applySiteImages;
   </script>
 
   <style>
     /* ═══════════════════════════════════════════
-       DESIGN TOKENS — FUTURISTIC LUXURY
+       DESIGN TOKENS — METALLIC COPPER LUXURY
        ═══════════════════════════════════════════ */
     :root {
-      /* Neon Copper Wire Filament — glowing accent spectrum */
-      --orange-50:  #0D0906;
-      --orange-100: #1A0F08;
-      --orange-200: #3D1E0A;
-      --orange-300: #C85A1A;
-      --orange-400: #E87420;
-      --orange-500: #FF8C32;
-      --orange-600: #FF7A1A;
-      --orange-700: #E86A10;
-      --orange-800: #CC5A0A;
-      --orange-900: #993F05;
+      /* Metallic Copper — rich, warm, oxidized */
+      --copper-light:  #E8A87C;
+      --copper:        #B87333;
+      --copper-mid:    #A0522D;
+      --copper-deep:   #8B4513;
+      --copper-shine:  #D4895A;
+      --copper-glow:   rgba(184,115,51,0.45);
+      --copper-soft:   rgba(184,115,51,0.15);
+      --copper-faint:  rgba(184,115,51,0.06);
 
-      /* Neon glow accents */
-      --neon-copper:      #FF8C32;
-      --neon-copper-dim:  #CC6A20;
-      --neon-glow:        rgba(255,140,50,0.5);
-      --neon-glow-soft:   rgba(255,140,50,0.15);
-      --neon-glow-faint:  rgba(255,140,50,0.07);
-      --neon-wire:        0 0 8px rgba(255,140,50,0.6), 0 0 20px rgba(255,140,50,0.2);
+      /* Metallic Grey — rich, deep, premium */
+      --grey-base:     #2A2D35;
+      --grey-mid:      #363A45;
+      --grey-surface:  #3E4352;
+      --grey-light:    #4A5060;
+      --grey-lighter:  #5C6272;
+      --grey-silver:   #8A919E;
+      --grey-pearl:    #B8BEC8;
+      --grey-mist:     #D0D5DE;
 
-      /* Gold — replaced with platinum/silver accents */
-      --gold-light: #D0D8E0;
-      --gold:       #A0AEC0;
-      --gold-dark:  #8896A8;
-      --gold-glow:  rgba(160,174,192,0.15);
+      /* Luxurious White — rich warm cream white */
+      --lux-white:     #FAF8F5;
+      --lux-cream:     #F5F0EA;
+      --lux-ivory:     #EDE8E0;
+      --lux-pearl:     #E8E2D8;
 
-      /* Reflective Silver/Platinum surfaces */
-      --white:      #F1F5F9;
-      --cream:      #E8EDF2;
-      --ivory:      #E2E8F0;
-      --champagne:  #CBD5E1;
-      --warm-50:    #E2E8F0;
-      --warm-100:   #CBD5E1;
-      --warm-200:   #94A3B8;
-      --warm-300:   #94A3B8;
-      --warm-400:   #78859A;
-      --warm-500:   #64748B;
-      --warm-600:   #475569;
-      --warm-700:   #1E293B;
-      --warm-800:   #0F172A;
-      --warm-900:   #030303;
-
-      /* Liquid Obsidian Black */
-      --dark-bg:      #030303;
-      --dark-surface: #0A0A0C;
-      --dark-card:    #0F0F12;
-      --dark-border:  rgba(255,140,50,0.12);
+      /* Fluid Art Background */
+      --bg-base:       #2E3140;
 
       /* Functional */
-      --text-primary:   #0A0A0C;
-      --text-secondary: #475569;
-      --text-muted:     #64748B;
-      --accent:         var(--neon-copper);
-      --accent-hover:   var(--orange-600);
-      --accent-light:   rgba(255,140,50,0.08);
-      --surface:        #E8EDF2;
-      --surface-alt:    #E2E8F0;
-      --border:         rgba(148,163,184,0.3);
-      --border-gold:    var(--neon-copper);
+      --text-primary:   #1A1D26;
+      --text-secondary: #4A5060;
+      --text-muted:     #6B7280;
+      --text-on-dark:   #E8E2D8;
+      --accent:         var(--copper);
+      --accent-hover:   var(--copper-shine);
+      --accent-light:   var(--copper-soft);
+      --surface:        var(--lux-cream);
+      --border:         rgba(184,115,51,0.25);
+
+      /* Neon wire effect for copper */
+      --copper-wire:   0 0 8px rgba(184,115,51,0.55), 0 0 20px rgba(184,115,51,0.2);
+      --copper-glow-strong: 0 0 24px rgba(184,115,51,0.5), 0 0 48px rgba(184,115,51,0.15);
 
       /* Type Scale */
       --font-display: 'Playfair Display', Georgia, serif;
@@ -124,7 +152,6 @@
       --text-6xl:  3.75rem;
       --text-7xl:  4.5rem;
 
-      /* Spacing */
       --space-xs:  0.25rem;
       --space-sm:  0.5rem;
       --space-md:  1rem;
@@ -135,7 +162,6 @@
       --space-4xl: 7rem;
       --space-5xl: 10rem;
 
-      /* Layout */
       --max-width:  1280px;
       --nav-height: 80px;
       --radius-sm:  4px;
@@ -143,14 +169,11 @@
       --radius-lg:  12px;
       --radius-xl:  16px;
 
-      /* Shadows — cold, reflective */
-      --shadow-sm:  0 1px 3px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.12);
-      --shadow-md:  0 4px 16px rgba(0,0,0,0.25), 0 2px 6px rgba(0,0,0,0.15);
-      --shadow-lg:  0 16px 48px rgba(0,0,0,0.3), 0 6px 16px rgba(0,0,0,0.18);
-      --shadow-xl:  0 28px 72px rgba(0,0,0,0.4), 0 10px 28px rgba(0,0,0,0.2);
-      --shadow-gold: 0 8px 32px rgba(255,140,50,0.2), 0 4px 12px rgba(255,140,50,0.12);
+      --shadow-sm:  0 1px 3px rgba(0,0,0,0.2);
+      --shadow-md:  0 4px 16px rgba(0,0,0,0.25);
+      --shadow-lg:  0 16px 48px rgba(0,0,0,0.3);
+      --shadow-xl:  0 28px 72px rgba(0,0,0,0.4);
 
-      /* Transitions */
       --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
       --duration: 0.5s;
     }
@@ -171,7 +194,7 @@
       font-size: var(--text-base);
       line-height: 1.7;
       color: var(--text-primary);
-      background: var(--cream);
+      background: var(--bg-base);
       overflow-x: hidden;
     }
 
@@ -179,6 +202,61 @@
     a { color: inherit; text-decoration: none; }
     button { font: inherit; cursor: pointer; border: none; background: none; }
     input, textarea, select { font: inherit; }
+
+    /* ═══════════════════════════════════════════
+       FLUID ART CANVAS — Metallic paint stirring
+       Fixed behind content, moves with scroll
+       ═══════════════════════════════════════════ */
+    #fluidCanvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    /* All sections sit on top of the canvas */
+    .hero, .features, .intro, .accent-banner, .footer,
+    .rooms-section, .events-showcase, .inquiry-section,
+    .page-hero, .capacity-banner {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ═══════════════════════════════════════════
+       SCROLL REVEAL ANIMATIONS
+       ═══════════════════════════════════════════ */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+    }
+    .reveal.reveal-left {
+      transform: translateX(-50px);
+    }
+    .reveal.reveal-right {
+      transform: translateX(50px);
+    }
+    .reveal.reveal-scale {
+      transform: scale(0.92);
+    }
+    .reveal.in-view {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Stagger children */
+    .reveal-stagger > * {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+    }
+    .reveal-stagger.in-view > *:nth-child(1) { opacity:1; transform:none; transition-delay:0s; }
+    .reveal-stagger.in-view > *:nth-child(2) { opacity:1; transform:none; transition-delay:0.12s; }
+    .reveal-stagger.in-view > *:nth-child(3) { opacity:1; transform:none; transition-delay:0.24s; }
+    .reveal-stagger.in-view > *:nth-child(4) { opacity:1; transform:none; transition-delay:0.36s; }
+    .reveal-stagger.in-view > *:nth-child(5) { opacity:1; transform:none; transition-delay:0.48s; }
 
     /* ═══════════════════════════════════════════
        UTILITY CLASSES
@@ -196,28 +274,27 @@
       font-weight: 600;
       letter-spacing: 0.25em;
       text-transform: uppercase;
-      color: var(--neon-copper);
+      color: var(--copper);
       margin-bottom: var(--space-md);
       display: flex;
       align-items: center;
       gap: var(--space-sm);
-      text-shadow: 0 0 12px rgba(255,140,50,0.4);
+      text-shadow: 0 0 12px rgba(184,115,51,0.5);
     }
 
     .section-eyebrow::before {
       content: '';
       width: 32px;
       height: 1px;
-      background: linear-gradient(90deg, var(--neon-copper), transparent);
+      background: linear-gradient(90deg, var(--copper), transparent);
       display: inline-block;
-      box-shadow: 0 0 6px rgba(255,140,50,0.5);
+      box-shadow: 0 0 6px rgba(184,115,51,0.6);
     }
 
     .section-title {
       font-family: var(--font-display);
       font-weight: 400;
       line-height: 1.15;
-      color: var(--text-primary);
       letter-spacing: 0.01em;
     }
 
@@ -225,32 +302,17 @@
       font-family: var(--font-accent);
       font-size: var(--text-xl);
       font-weight: 300;
-      color: var(--text-secondary);
       line-height: 1.6;
       max-width: 600px;
       font-style: italic;
     }
 
-    /* Neon divider line */
     .gold-divider {
       width: 60px;
       height: 1px;
-      background: linear-gradient(90deg, var(--neon-copper), transparent);
+      background: linear-gradient(90deg, var(--copper), transparent);
       margin: var(--space-xl) 0;
-      box-shadow: 0 0 8px rgba(255,140,50,0.4);
-    }
-
-    /* Grain texture overlay for dark sections */
-    .grain-overlay { position: relative; }
-    .grain-overlay::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: 0.02;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      background-size: 200px 200px;
-      pointer-events: none;
-      z-index: 1;
+      box-shadow: 0 0 8px rgba(184,115,51,0.5);
     }
 
     /* ═══════════════════════════════════════════
@@ -258,25 +320,21 @@
        ═══════════════════════════════════════════ */
     .nav {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
+      top: 0; left: 0; right: 0;
       z-index: 1000;
       height: var(--nav-height);
       display: flex;
       align-items: center;
-      background: rgba(3,3,3,0.2);
+      background: rgba(42,45,53,0.15);
       backdrop-filter: blur(24px) saturate(1.6);
       -webkit-backdrop-filter: blur(24px) saturate(1.6);
-      transition: background var(--duration) var(--ease-out),
-                  box-shadow var(--duration) var(--ease-out);
-      border-bottom: 1px solid rgba(255,140,50,0);
+      transition: background var(--duration) var(--ease-out), box-shadow var(--duration) var(--ease-out);
+      border-bottom: 1px solid rgba(184,115,51,0);
     }
-
     .nav.scrolled {
-      background: rgba(3,3,3,0.85);
-      box-shadow: 0 1px 0 rgba(255,140,50,0.15);
-      border-bottom-color: rgba(255,140,50,0.1);
+      background: rgba(42,45,53,0.92);
+      box-shadow: 0 1px 0 rgba(184,115,51,0.2);
+      border-bottom-color: rgba(184,115,51,0.12);
     }
 
     .nav-inner {
@@ -289,1406 +347,492 @@
       justify-content: space-between;
     }
 
-    .nav-brand {
-      display: flex;
-      flex-direction: column;
-      transition: color var(--duration) var(--ease-out);
-    }
+    .nav-brand { display: flex; flex-direction: column; transition: color var(--duration) var(--ease-out); }
+    .nav-brand-name { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 600; letter-spacing: 0.02em; line-height: 1.2; }
+    .nav-brand-sub { font-family: var(--font-accent); font-size: var(--text-xs); font-weight: 400; letter-spacing: 0.15em; text-transform: uppercase; opacity: 0.7; font-style: italic; }
 
-    .nav-brand-name {
-      font-family: var(--font-display);
-      font-size: var(--text-lg);
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      line-height: 1.2;
-    }
+    .nav:not(.scrolled) .nav-brand { color: var(--lux-white); }
+    .nav.scrolled .nav-brand { color: var(--lux-white); }
 
-    .nav-brand-sub {
-      font-family: var(--font-accent);
-      font-size: var(--text-xs);
-      font-weight: 400;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      opacity: 0.7;
-      font-style: italic;
-    }
-
-    .nav:not(.scrolled) .nav-brand { color: var(--white); }
-    .nav.scrolled .nav-brand { color: var(--white); }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: var(--space-2xl);
-      list-style: none;
-    }
-
+    .nav-links { display: flex; align-items: center; gap: var(--space-2xl); list-style: none; }
     .nav-link {
-      font-size: var(--text-sm);
-      font-weight: 500;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      transition: color 0.3s, opacity 0.3s;
-      position: relative;
-      cursor: pointer;
+      font-size: var(--text-sm); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+      transition: color 0.3s; position: relative; cursor: pointer;
     }
-
     .nav-link::after {
-      content: '';
-      position: absolute;
-      bottom: -4px;
-      left: 0;
-      width: 0;
-      height: 1px;
-      background: var(--neon-copper);
-      box-shadow: 0 0 6px rgba(255,140,50,0.6);
+      content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 1px;
+      background: var(--copper); box-shadow: 0 0 6px rgba(184,115,51,0.7);
       transition: width 0.4s var(--ease-out);
     }
-
-    .nav-link:hover::after,
-    .nav-link.active::after { width: 100%; }
-
-    .nav:not(.scrolled) .nav-link { color: rgba(241,245,249,0.85); }
-    .nav:not(.scrolled) .nav-link:hover,
-    .nav:not(.scrolled) .nav-link.active { color: var(--neon-copper); }
-    .nav.scrolled .nav-link { color: rgba(241,245,249,0.7); }
-    .nav.scrolled .nav-link:hover,
-    .nav.scrolled .nav-link.active { color: var(--neon-copper); }
+    .nav-link:hover::after, .nav-link.active::after { width: 100%; }
+    .nav:not(.scrolled) .nav-link { color: rgba(250,248,245,0.85); }
+    .nav:not(.scrolled) .nav-link:hover, .nav:not(.scrolled) .nav-link.active { color: var(--copper-shine); }
+    .nav.scrolled .nav-link { color: rgba(232,226,216,0.75); }
+    .nav.scrolled .nav-link:hover, .nav.scrolled .nav-link.active { color: var(--copper-shine); }
 
     .nav-cta {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-sm);
+      display: inline-flex; align-items: center; gap: var(--space-sm);
       padding: 10px 24px;
-      background: transparent;
-      color: var(--neon-copper);
-      font-size: var(--text-sm);
-      font-weight: 600;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
+      background: transparent; color: var(--copper);
+      font-size: var(--text-sm); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
       border-radius: var(--radius-sm);
-      border: 1px solid var(--neon-copper);
-      box-shadow: 0 0 8px rgba(255,140,50,0.3), inset 0 0 8px rgba(255,140,50,0.05);
+      border: 1px solid var(--copper);
+      box-shadow: var(--copper-wire);
       transition: all 0.3s var(--ease-out);
     }
-
     .nav-cta:hover {
-      background: rgba(255,140,50,0.1);
-      box-shadow: 0 0 20px rgba(255,140,50,0.5), inset 0 0 12px rgba(255,140,50,0.1);
+      background: rgba(184,115,51,0.12);
+      box-shadow: var(--copper-glow-strong);
       transform: translateY(-1px);
     }
 
-    /* Mobile Nav Toggle */
-    .nav-toggle {
-      display: none;
-      flex-direction: column;
-      gap: 5px;
-      padding: 4px;
-      cursor: pointer;
-    }
-
-    .nav-toggle span {
-      width: 24px;
-      height: 2px;
-      background: var(--white);
-      transition: background 0.3s, transform 0.3s, opacity 0.3s;
-    }
-
-    .nav.scrolled .nav-toggle span { background: var(--white); }
-
+    .nav-toggle { display: none; flex-direction: column; gap: 5px; padding: 4px; cursor: pointer; }
+    .nav-toggle span { width: 24px; height: 2px; background: var(--lux-white); transition: background 0.3s, transform 0.3s, opacity 0.3s; }
     .nav-toggle.open span:nth-child(1) { transform: rotate(45deg) translate(5px, 5px); }
     .nav-toggle.open span:nth-child(2) { opacity: 0; }
     .nav-toggle.open span:nth-child(3) { transform: rotate(-45deg) translate(5px, -5px); }
 
-    /* Mobile Overlay */
     .mobile-menu {
-      display: none;
-      position: fixed;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      width: 280px;
-      max-width: 75vw;
-      z-index: 999;
-      background: var(--dark-bg);
-      flex-direction: column;
+      display: none; position: fixed; top: 0; right: 0; bottom: 0; width: 280px; max-width: 75vw;
+      z-index: 999; background: var(--grey-base); flex-direction: column;
       padding: calc(var(--nav-height) + var(--space-xl)) var(--space-xl) var(--space-xl);
-      gap: var(--space-xs);
-      box-shadow: -8px 0 40px rgba(0,0,0,0.6);
-      transform: translateX(100%);
-      transition: transform 0.4s var(--ease-out);
-      border-left: 1px solid rgba(255,140,50,0.15);
+      gap: var(--space-xs); box-shadow: -8px 0 40px rgba(0,0,0,0.6);
+      transform: translateX(100%); transition: transform 0.4s var(--ease-out);
+      border-left: 1px solid rgba(184,115,51,0.2);
     }
-
-    .mobile-menu.open {
-      display: flex;
-      transform: translateX(0);
-    }
-
+    .mobile-menu.open { display: flex; transform: translateX(0); }
     .mobile-menu-backdrop {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 998;
-      background: rgba(3,3,3,0.6);
-      backdrop-filter: blur(4px);
-      opacity: 0;
-      transition: opacity 0.4s var(--ease-out);
+      display: none; position: fixed; inset: 0; z-index: 998;
+      background: rgba(30,33,40,0.7); backdrop-filter: blur(4px); opacity: 0; transition: opacity 0.4s;
     }
-
-    .mobile-menu-backdrop.open {
-      display: block;
-      opacity: 1;
-    }
-
-    .mobile-menu .nav-link {
-      color: var(--warm-300);
-      font-family: var(--font-display);
-      font-size: var(--text-lg);
-      font-weight: 400;
-      letter-spacing: 0.02em;
-      text-transform: none;
-      padding: var(--space-md) 0;
-      border-bottom: 1px solid rgba(255,140,50,0.08);
-    }
-
-    .mobile-menu .nav-link:hover { color: var(--neon-copper); }
-
-    .mobile-menu .btn-primary {
-      margin-top: var(--space-lg);
-      justify-content: center;
-    }
+    .mobile-menu-backdrop.open { display: block; opacity: 1; }
+    .mobile-menu .nav-link { color: var(--grey-mist); font-family: var(--font-display); font-size: var(--text-lg); font-weight: 400; letter-spacing: 0.02em; padding: var(--space-sm) 0; border-bottom: 1px solid rgba(184,115,51,0.08); }
+    .mobile-menu .nav-link:hover { color: var(--copper-shine); }
 
     /* ═══════════════════════════════════════════
        HERO SECTION
        ═══════════════════════════════════════════ */
     .hero {
-      position: relative;
-      height: 100vh;
-      min-height: 700px;
-      display: flex;
-      align-items: flex-end;
+      height: 100vh; min-height: 700px;
+      display: flex; align-items: flex-end;
       overflow: hidden;
     }
-
     .hero-bg {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
+      position: absolute; inset: 0;
     }
-
-    .hero-bg img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      object-position: center 40%;
-    }
-
-    .hero-bg picture {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
+    .hero-bg picture, .hero-bg img { width: 100%; height: 100%; object-fit: cover; }
     .hero-bg::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg,
-          rgba(3,3,3,0.4) 0%,
-          rgba(3,3,3,0.05) 35%,
-          rgba(3,3,3,0.2) 60%,
-          rgba(3,3,3,0.92) 100%),
-        linear-gradient(90deg,
-          rgba(3,3,3,0.4) 0%,
-          transparent 50%);
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(30,33,40,0.3) 0%, rgba(30,33,40,0.75) 100%),
+                  linear-gradient(90deg, rgba(30,33,40,0.4) 0%, transparent 60%);
     }
 
     .hero-content {
-      position: relative;
-      z-index: 2;
-      width: 100%;
-      max-width: var(--max-width);
+      position: relative; z-index: 2;
+      width: 100%; max-width: var(--max-width);
       margin: 0 auto;
-      padding: 0 var(--space-xl) var(--space-4xl);
+      padding: 0 var(--space-xl) var(--space-5xl);
     }
 
     .hero-tagline-eyebrow {
-      font-family: var(--font-body);
-      font-size: var(--text-xs);
-      font-weight: 500;
-      letter-spacing: 0.3em;
-      text-transform: uppercase;
-      color: var(--neon-copper);
-      margin-bottom: var(--space-lg);
-      text-shadow: 0 0 16px rgba(255,140,50,0.5);
+      font-family: var(--font-body); font-size: var(--text-xs); font-weight: 500;
+      letter-spacing: 0.3em; text-transform: uppercase; color: var(--copper);
+      margin-bottom: var(--space-lg); text-shadow: 0 0 16px rgba(184,115,51,0.6);
     }
 
     .hero-tagline {
       font-family: var(--font-display);
       font-size: clamp(2.5rem, 5.5vw, var(--text-7xl));
-      font-weight: 400;
-      line-height: 1.08;
-      color: var(--white);
-      max-width: 780px;
-      margin-bottom: var(--space-lg);
-      letter-spacing: 0.02em;
+      font-weight: 400; line-height: 1.08;
+      color: var(--lux-white); max-width: 780px;
+      margin-bottom: var(--space-lg); letter-spacing: 0.02em;
       text-shadow: 0 2px 40px rgba(0,0,0,0.5);
     }
-
-    .hero-tagline em {
-      font-style: italic;
-      color: var(--neon-copper);
-      text-shadow: 0 0 30px rgba(255,140,50,0.4);
-    }
+    .hero-tagline em { font-style: italic; color: var(--copper-shine); text-shadow: 0 0 30px rgba(184,115,51,0.5); }
 
     .hero-description {
       font-family: var(--font-accent);
       font-size: clamp(var(--text-lg), 2vw, var(--text-2xl));
-      font-weight: 300;
-      color: rgba(241,245,249,0.75);
-      max-width: 540px;
-      line-height: 1.6;
-      margin-bottom: var(--space-2xl);
+      font-weight: 300; color: rgba(232,226,216,0.8);
+      max-width: 540px; line-height: 1.6; margin-bottom: var(--space-2xl);
       font-style: italic;
-      letter-spacing: 0.01em;
     }
 
-    .hero-actions {
-      display: flex;
-      align-items: center;
-      gap: var(--space-lg);
-    }
+    .hero-actions { display: flex; align-items: center; gap: var(--space-lg); }
 
     /* ═══════════════════════════════════════════
-       BUTTONS — Neon Wire Aesthetic
+       BUTTONS
        ═══════════════════════════════════════════ */
-    .btn-primary {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-sm);
-      padding: 14px 28px;
-      background: transparent;
-      color: var(--neon-copper);
-      font-size: var(--text-sm);
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+    /* SOLID hero button — filled metallic copper */
+    .btn-hero-solid {
+      display: inline-flex; align-items: center; gap: var(--space-sm);
+      padding: 16px 36px;
+      background: linear-gradient(135deg, var(--copper-shine) 0%, var(--copper) 50%, var(--copper-deep) 100%);
+      color: var(--lux-white);
+      font-size: var(--text-sm); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
       border-radius: var(--radius-sm);
+      border: 1px solid var(--copper-light);
+      box-shadow: 0 4px 20px rgba(184,115,51,0.5), inset 0 1px 0 rgba(232,168,124,0.4);
       transition: all 0.4s var(--ease-out);
-      border: 1px solid var(--neon-copper);
-      box-shadow: 0 0 10px rgba(255,140,50,0.25), inset 0 0 10px rgba(255,140,50,0.05);
+      position: relative; overflow: hidden;
+    }
+    .btn-hero-solid::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(232,168,124,0.3) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.3s;
+    }
+    .btn-hero-solid:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 32px rgba(184,115,51,0.6), 0 0 48px rgba(184,115,51,0.2), inset 0 1px 0 rgba(232,168,124,0.5);
+    }
+    .btn-hero-solid:hover::before { opacity: 1; }
+    .btn-hero-solid svg { transition: transform 0.3s var(--ease-out); }
+    .btn-hero-solid:hover svg { transform: translateX(3px); }
+
+    /* Primary outline copper button */
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: var(--space-sm);
+      padding: 14px 28px;
+      background: transparent; color: var(--copper);
+      font-size: var(--text-sm); font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--copper);
+      box-shadow: var(--copper-wire);
+      transition: all 0.4s var(--ease-out);
       width: auto;
     }
-
     .btn-primary:hover {
-      background: rgba(255,140,50,0.08);
+      background: rgba(184,115,51,0.1);
       transform: translateY(-2px);
-      box-shadow: 0 0 24px rgba(255,140,50,0.5), 0 0 48px rgba(255,140,50,0.15), inset 0 0 16px rgba(255,140,50,0.08);
-      text-shadow: 0 0 8px rgba(255,140,50,0.4);
+      box-shadow: var(--copper-glow-strong);
     }
-
     .btn-primary svg { transition: transform 0.3s var(--ease-out); }
     .btn-primary:hover svg { transform: translateX(3px); }
 
+    /* Secondary */
     .btn-secondary {
-      display: inline-flex;
-      align-items: center;
-      gap: var(--space-sm);
+      display: inline-flex; align-items: center; gap: var(--space-sm);
       padding: 16px 36px;
-      background: transparent;
-      color: var(--white);
-      font-size: var(--text-sm);
-      font-weight: 500;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      border: 1px solid rgba(241,245,249,0.25);
-      border-radius: var(--radius-sm);
+      background: transparent; color: var(--lux-white);
+      font-size: var(--text-sm); font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+      border: 1px solid rgba(232,226,216,0.3); border-radius: var(--radius-sm);
       transition: all 0.4s var(--ease-out);
     }
+    .btn-secondary:hover { border-color: var(--copper); color: var(--copper-shine); box-shadow: 0 0 12px rgba(184,115,51,0.3); }
 
-    .btn-secondary:hover {
-      border-color: var(--neon-copper);
-      color: var(--neon-copper);
-      box-shadow: 0 0 12px rgba(255,140,50,0.3);
+    .btn-white {
+      padding: 14px 32px;
+      background: linear-gradient(135deg, var(--copper-shine), var(--copper), var(--copper-deep));
+      color: var(--lux-white);
+      font-size: var(--text-sm); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--copper-light);
+      box-shadow: 0 4px 16px rgba(184,115,51,0.4);
+      transition: all 0.4s var(--ease-out);
+    }
+    .btn-white:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(184,115,51,0.5);
     }
 
     /* Hero scroll indicator */
     .hero-scroll {
-      position: absolute;
-      bottom: var(--space-xl);
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-sm);
-      color: var(--neon-copper);
-      font-size: var(--text-xs);
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      text-shadow: 0 0 10px rgba(255,140,50,0.5);
+      position: absolute; bottom: var(--space-xl); left: 50%; transform: translateX(-50%);
+      z-index: 2; display: flex; flex-direction: column; align-items: center; gap: var(--space-sm);
+      color: var(--copper-shine); font-size: var(--text-xs); letter-spacing: 0.2em; text-transform: uppercase;
+      text-shadow: 0 0 10px rgba(184,115,51,0.6);
     }
-
     .hero-scroll-line {
-      width: 1px;
-      height: 40px;
-      background: linear-gradient(to bottom, var(--neon-copper), transparent);
-      box-shadow: 0 0 6px rgba(255,140,50,0.4);
+      width: 1px; height: 40px;
+      background: linear-gradient(to bottom, var(--copper), transparent);
+      box-shadow: 0 0 6px rgba(184,115,51,0.5);
       animation: scrollPulse 2s ease-in-out infinite;
     }
-
-    @keyframes scrollPulse {
-      0%, 100% { opacity: 1; transform: scaleY(1); }
-      50% { opacity: 0.3; transform: scaleY(0.6); }
-    }
+    @keyframes scrollPulse { 0%,100% { opacity:1; transform:scaleY(1); } 50% { opacity:0.3; transform:scaleY(0.6); } }
 
     /* ═══════════════════════════════════════════
-       INTRO SECTION — Liquid Obsidian
-       ═══════════════════════════════════════════ */
-    .intro {
-      padding: var(--space-5xl) 0;
-      background: var(--dark-bg);
-      position: relative;
-    }
-
-    .intro::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: 0.02;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-      pointer-events: none;
-    }
-
-    .intro .container { position: relative; z-index: 2; }
-
-    .intro-grid {
-      max-width: 720px;
-      margin: 0 auto;
-      text-align: center;
-    }
-
-    .intro-text { max-width: 720px; margin: 0 auto; }
-    .intro-text .section-eyebrow { justify-content: center; }
-
-    .intro-text .section-title {
-      font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl));
-      margin-bottom: var(--space-lg);
-      color: var(--white);
-      font-weight: 400;
-      letter-spacing: 0.02em;
-    }
-
-    .intro-body {
-      color: #78859A;
-      font-family: var(--font-accent);
-      font-size: clamp(var(--text-lg), 2vw, var(--text-xl));
-      line-height: 1.9;
-      margin-bottom: var(--space-2xl);
-      font-style: italic;
-      font-weight: 300;
-    }
-
-    .intro-stats {
-      display: flex;
-      gap: var(--space-2xl);
-      padding-top: var(--space-2xl);
-      border-top: 1px solid rgba(255,140,50,0.1);
-    }
-
-    .intro-stat-number {
-      font-family: var(--font-display);
-      font-size: var(--text-4xl);
-      font-weight: 500;
-      color: var(--neon-copper);
-      line-height: 1;
-      margin-bottom: var(--space-xs);
-      text-shadow: 0 0 16px rgba(255,140,50,0.4);
-    }
-
-    .intro-stat-label {
-      font-size: var(--text-sm);
-      color: var(--text-muted);
-      letter-spacing: 0.04em;
-    }
-
-    .intro-image {
-      position: relative;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      aspect-ratio: 4/5;
-    }
-
-    .intro-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 8s var(--ease-out);
-    }
-
-    .intro-image:hover img { transform: scale(1.04); }
-
-    .intro-image-badge {
-      position: absolute;
-      bottom: var(--space-xl);
-      left: var(--space-xl);
-      background: rgba(3,3,3,0.8);
-      backdrop-filter: blur(16px);
-      padding: var(--space-md) var(--space-lg);
-      border-radius: var(--radius-md);
-      box-shadow: var(--shadow-lg);
-      border: 1px solid rgba(255,140,50,0.15);
-    }
-
-    .intro-image-badge span {
-      display: block;
-      font-family: var(--font-display);
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--white);
-    }
-
-    .intro-image-badge small {
-      font-size: var(--text-xs);
-      color: #64748B;
-    }
-
-    /* ═══════════════════════════════════════════
-       FEATURES GRID — Reflective Platinum Surface
+       FEATURES SECTION — Luxurious White base
        ═══════════════════════════════════════════ */
     .features {
       padding: var(--space-5xl) 0;
-      background: linear-gradient(180deg, #E8EDF2 0%, #E2E8F0 100%);
+      /* Semi-transparent so fluid canvas breathes through */
+      background: rgba(245,240,234,0.82);
+      backdrop-filter: blur(0px);
       position: relative;
-      border-top: 1px solid rgba(148,163,184,0.3);
+    }
+    /* Subtle copper shimmer on section edges */
+    .features::before {
+      content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--copper), transparent);
+      box-shadow: 0 0 12px rgba(184,115,51,0.4);
     }
 
-    .features-header {
-      text-align: center;
-      margin-bottom: var(--space-4xl);
-    }
-
+    .features-header { text-align: center; margin-bottom: var(--space-4xl); }
     .features-header .section-eyebrow { justify-content: center; }
+    .features-header .section-title { font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl)); margin-bottom: var(--space-md); font-weight: 400; color: var(--text-primary); }
+    .features-header .section-subtitle { margin: 0 auto; color: var(--text-secondary); }
 
-    .features-header .section-title {
-      font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl));
-      margin-bottom: var(--space-md);
-      font-weight: 400;
-      letter-spacing: 0.02em;
-    }
-
-    .features-header .section-subtitle { margin: 0 auto; }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: var(--space-lg);
-    }
+    .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-lg); }
 
     .feature-card {
-      position: relative;
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      aspect-ratio: 3/4;
-      cursor: pointer;
-      border: 1px solid rgba(255,140,50,0.2);
-      box-shadow: var(--shadow-md), 0 0 0 0 rgba(255,140,50,0);
+      position: relative; border-radius: var(--radius-lg); overflow: hidden; aspect-ratio: 3/4; cursor: pointer;
+      border: 1px solid rgba(184,115,51,0.25);
+      box-shadow: var(--shadow-md);
       transition: box-shadow 0.6s var(--ease-out), transform 0.6s var(--ease-out), border-color 0.6s;
     }
-
-    .feature-card:hover {
-      box-shadow: var(--shadow-xl), 0 0 20px rgba(255,140,50,0.3);
-      border-color: var(--neon-copper);
-      transform: translateY(-6px);
-    }
-
-    .feature-card img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 1.2s var(--ease-out);
-    }
-
+    .feature-card:hover { box-shadow: var(--shadow-xl), 0 0 24px rgba(184,115,51,0.35); border-color: var(--copper); transform: translateY(-6px); }
+    .feature-card img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.2s var(--ease-out); }
     .feature-card:hover img { transform: scale(1.08); }
 
+    /* Placeholder for firebase images not yet uploaded */
+    .feature-card img[src=""], .feature-card img:not([src]) {
+      background: linear-gradient(135deg, var(--grey-mid), var(--grey-base));
+    }
+
     .feature-card-overlay {
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(180deg,
-        transparent 30%,
-        rgba(3,3,3,0.9) 100%);
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: var(--space-xl);
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, transparent 30%, rgba(30,33,40,0.92) 100%);
+      display: flex; flex-direction: column; justify-content: flex-end; padding: var(--space-xl);
       transition: background 0.5s;
     }
-
-    .feature-card:hover .feature-card-overlay {
-      background: linear-gradient(180deg,
-        rgba(255,140,50,0.03) 0%,
-        rgba(3,3,3,0.95) 100%);
-    }
+    .feature-card:hover .feature-card-overlay { background: linear-gradient(180deg, rgba(184,115,51,0.04) 0%, rgba(30,33,40,0.96) 100%); }
 
     .feature-card-icon {
-      width: 44px;
-      height: 44px;
-      background: transparent;
-      border: 1px solid var(--neon-copper);
+      width: 44px; height: 44px;
+      background: transparent; border: 1px solid var(--copper);
       border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       margin-bottom: var(--space-md);
-      transition: transform 0.4s var(--ease-out), box-shadow 0.4s;
-      box-shadow: 0 0 10px rgba(255,140,50,0.3), inset 0 0 6px rgba(255,140,50,0.1);
+      box-shadow: var(--copper-wire);
+      transition: transform 0.4s, box-shadow 0.4s;
     }
-
-    .feature-card:hover .feature-card-icon {
-      transform: translateY(-4px);
-      box-shadow: 0 0 20px rgba(255,140,50,0.5), inset 0 0 10px rgba(255,140,50,0.15);
-    }
-
-    .feature-card-icon svg {
-      width: 22px;
-      height: 22px;
-      color: var(--neon-copper);
-    }
-
-    .feature-card-title {
-      font-family: var(--font-display);
-      font-size: var(--text-xl);
-      font-weight: 500;
-      color: var(--white);
-      margin-bottom: var(--space-xs);
-    }
-
-    .feature-card-desc {
-      font-size: var(--text-sm);
-      color: rgba(241,245,249,0.65);
-      line-height: 1.5;
-    }
+    .feature-card:hover .feature-card-icon { transform: translateY(-4px); box-shadow: var(--copper-glow-strong); }
+    .feature-card-icon svg { width: 22px; height: 22px; color: var(--copper-shine); }
+    .feature-card-title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 500; color: var(--lux-white); margin-bottom: var(--space-xs); }
+    .feature-card-desc { font-size: var(--text-sm); color: rgba(232,226,216,0.7); line-height: 1.5; }
 
     /* ═══════════════════════════════════════════
-       ACCENT BANNER — Obsidian + Neon Wire
+       INTRO — Rich Metallic Grey
        ═══════════════════════════════════════════ */
-    .accent-banner {
-      background: var(--dark-bg);
-      padding: var(--space-4xl) 0;
-      position: relative;
-      border-top: 1px solid rgba(255,140,50,0.1);
-      border-bottom: 1px solid rgba(255,140,50,0.1);
-    }
-
-    .accent-banner::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 10%;
-      right: 10%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--neon-copper), transparent);
-      box-shadow: 0 0 12px rgba(255,140,50,0.4);
-    }
-
-    .accent-banner-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      flex-wrap: wrap;
-      gap: var(--space-xl);
-    }
-
-    .accent-banner-text { color: var(--white); }
-
-    .accent-banner-text h3 {
-      font-family: var(--font-display);
-      font-size: var(--text-3xl);
-      font-weight: 400;
-      margin-bottom: var(--space-xs);
-      letter-spacing: 0.02em;
-    }
-
-    .accent-banner-text p {
-      font-family: var(--font-accent);
-      font-size: var(--text-lg);
-      color: #64748B;
-      font-style: italic;
-    }
-
-    .btn-white {
-      padding: 14px 32px;
-      background: transparent;
-      color: var(--neon-copper);
-      font-size: var(--text-sm);
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--neon-copper);
-      box-shadow: 0 0 10px rgba(255,140,50,0.25);
-      transition: all 0.4s var(--ease-out);
-    }
-
-    .btn-white:hover {
-      background: rgba(255,140,50,0.08);
-      transform: translateY(-2px);
-      box-shadow: 0 0 24px rgba(255,140,50,0.5), 0 0 48px rgba(255,140,50,0.15);
-    }
-
-    /* ═══════════════════════════════════════════
-       FOOTER — Obsidian base
-       ═══════════════════════════════════════════ */
-    .footer {
-      background: var(--dark-bg);
-      padding: var(--space-4xl) 0 var(--space-xl);
-      color: #78859A;
-      position: relative;
-    }
-
-    .footer::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 10%;
-      right: 10%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--neon-copper), transparent);
-      box-shadow: 0 0 10px rgba(255,140,50,0.3);
-    }
-
-    .footer-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr 1fr 1fr;
-      gap: var(--space-3xl);
-      margin-bottom: var(--space-3xl);
-      padding-bottom: var(--space-3xl);
-      border-bottom: 1px solid rgba(255,140,50,0.08);
-    }
-
-    .footer-brand .nav-brand-name {
-      color: var(--white);
-      margin-bottom: var(--space-sm);
-    }
-
-    .footer-brand .nav-brand-sub {
-      color: #64748B;
-      margin-bottom: var(--space-lg);
-    }
-
-    .footer-brand-desc {
-      font-size: var(--text-sm);
-      line-height: 1.7;
-      color: #64748B;
-      max-width: 320px;
-    }
-
-    .footer-col-title {
-      font-family: var(--font-display);
-      font-size: var(--text-base);
-      font-weight: 500;
-      color: var(--white);
-      margin-bottom: var(--space-lg);
-    }
-
-    .footer-links {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-sm);
-    }
-
-    .footer-links a {
-      font-size: var(--text-sm);
-      color: #64748B;
-      transition: color 0.3s;
-    }
-
-    .footer-links a:hover { color: var(--neon-copper); }
-
-    .footer-bottom {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: var(--text-xs);
-      color: #475569;
-    }
-
-    .footer-social {
-      display: flex;
-      gap: var(--space-md);
-    }
-
-    .footer-social a {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 1px solid rgba(255,140,50,0.15);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #64748B;
-      transition: all 0.3s;
-    }
-
-    .footer-social a:hover {
-      border-color: var(--neon-copper);
-      color: var(--neon-copper);
-      background: rgba(255,140,50,0.06);
-      box-shadow: 0 0 12px rgba(255,140,50,0.3);
-    }
-
-    /* ═══════════════════════════════════════════
-       PAGE: ACCOMMODATION
-       ═══════════════════════════════════════════ */
-    .page-hero {
-      position: relative;
-      height: 55vh;
-      min-height: 400px;
-      display: flex;
-      align-items: flex-end;
-      overflow: hidden;
-    }
-
-    .page-hero-bg {
-      position: absolute;
-      inset: 0;
-    }
-
-    .page-hero-bg img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .page-hero-bg::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(180deg,
-          rgba(3,3,3,0.45) 0%,
-          rgba(3,3,3,0.85) 100%),
-        linear-gradient(90deg,
-          rgba(3,3,3,0.3) 0%,
-          transparent 50%);
-    }
-
-    .page-hero-content {
-      position: relative;
-      z-index: 2;
-      width: 100%;
-      max-width: var(--max-width);
-      margin: 0 auto;
-      padding: 0 var(--space-xl) var(--space-3xl);
-    }
-
-    .page-hero-content .section-eyebrow { color: var(--neon-copper); }
-    .page-hero-content .section-eyebrow::before { background: var(--neon-copper); box-shadow: 0 0 6px rgba(255,140,50,0.5); }
-
-    .page-hero-content .section-title {
-      font-size: clamp(var(--text-4xl), 5vw, var(--text-6xl));
-      color: var(--white);
-      margin-bottom: var(--space-sm);
-    }
-
-    .page-hero-content .section-subtitle { color: rgba(241,245,249,0.65); }
-
-    /* Room Cards — Platinum glass */
-    .rooms-section {
+    .intro {
       padding: var(--space-5xl) 0;
-      background: linear-gradient(180deg, #E8EDF2 0%, #E2E8F0 100%);
-    }
-
-    .rooms-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: var(--space-2xl);
-    }
-
-    .room-card {
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      background: linear-gradient(145deg, #F1F5F9 0%, #E8EDF2 100%);
-      border: 1px solid rgba(255,140,50,0.15);
-      transition: box-shadow 0.6s var(--ease-out), transform 0.6s var(--ease-out), border-color 0.6s;
-    }
-
-    .room-card:hover {
-      box-shadow: var(--shadow-xl), 0 0 24px rgba(255,140,50,0.25);
-      transform: translateY(-4px);
-      border-color: var(--neon-copper);
-    }
-
-    .room-card-image {
-      position: relative;
-      aspect-ratio: 16/10;
-      overflow: hidden;
-    }
-
-    .room-card-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.8s var(--ease-out);
-    }
-
-    .room-card:hover .room-card-image img { transform: scale(1.05); }
-
-    .room-card-badge {
-      position: absolute;
-      top: var(--space-md);
-      left: var(--space-md);
-      padding: 6px 14px;
-      background: transparent;
-      color: var(--neon-copper);
-      font-size: var(--text-xs);
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--neon-copper);
-      box-shadow: 0 0 10px rgba(255,140,50,0.4);
-      backdrop-filter: blur(8px);
-      background: rgba(3,3,3,0.5);
-    }
-
-    .room-card-body { padding: var(--space-xl); }
-
-    .room-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: var(--space-md);
-    }
-
-    .room-card-name {
-      font-family: var(--font-display);
-      font-size: var(--text-2xl);
-      font-weight: 500;
-    }
-
-    .room-card-price { text-align: right; }
-
-    .room-card-price .price {
-      font-family: var(--font-display);
-      font-size: var(--text-2xl);
-      font-weight: 600;
-      color: var(--neon-copper);
-    }
-
-    .room-card-price .per-night {
-      font-size: var(--text-xs);
-      color: var(--text-muted);
-    }
-
-    .room-card-desc {
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-      line-height: 1.7;
-      margin-bottom: var(--space-lg);
-    }
-
-    /* Amenities */
-    .room-amenities {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-md);
-      padding: var(--space-lg) 0;
-      border-top: 1px solid rgba(148,163,184,0.2);
-      border-bottom: 1px solid rgba(148,163,184,0.2);
-      margin-bottom: var(--space-lg);
-    }
-
-    .amenity {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: var(--text-xs);
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
-    .amenity svg {
-      width: 18px;
-      height: 18px;
-      color: var(--neon-copper);
-    }
-
-    /* Calendar */
-    .room-calendar {
-      background: linear-gradient(145deg, #E2E8F0 0%, #CBD5E1 100%);
-      border-radius: var(--radius-md);
-      padding: var(--space-md);
-      margin-bottom: var(--space-lg);
-      border: 1px solid rgba(148,163,184,0.3);
-    }
-
-    .room-calendar-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--space-md);
-    }
-
-    .room-calendar-title {
-      font-family: var(--font-display);
-      font-size: var(--text-sm);
-      font-weight: 600;
-    }
-
-    .room-calendar-nav {
-      display: flex;
-      gap: var(--space-xs);
-    }
-
-    .room-calendar-nav button {
-      width: 28px;
-      height: 28px;
-      border-radius: var(--radius-sm);
-      border: 1px solid rgba(148,163,184,0.3);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-secondary);
-      background: rgba(241,245,249,0.6);
-      transition: all 0.2s;
-    }
-
-    .room-calendar-nav button:hover {
-      border-color: var(--neon-copper);
-      color: var(--neon-copper);
-      box-shadow: 0 0 8px rgba(255,140,50,0.3);
-    }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 2px;
-    }
-
-    .calendar-day-label {
-      text-align: center;
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-muted);
-      padding: 4px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .calendar-day {
-      text-align: center;
-      padding: 6px 2px;
-      font-size: var(--text-xs);
-      border-radius: var(--radius-sm);
-      cursor: pointer;
-      transition: all 0.2s;
-      color: var(--text-primary);
-    }
-
-    .calendar-day:hover { background: rgba(255,140,50,0.12); }
-    .calendar-day.available { background: rgba(241,245,249,0.6); }
-    .calendar-day.booked { color: #94A3B8; text-decoration: line-through; cursor: default; }
-    .calendar-day.booked:hover { background: transparent; }
-    .calendar-day.empty { cursor: default; }
-    .calendar-day.empty:hover { background: transparent; }
-
-    .room-card-actions {
-      display: flex;
-      gap: var(--space-sm);
-    }
-
-    .room-card-actions .btn-primary {
-      flex: 1;
-      justify-content: center;
-      padding: 14px 24px;
-    }
-
-    /* ═══════════════════════════════════════════
-       PAGE: WEDDINGS & EVENTS
-       ═══════════════════════════════════════════ */
-    .events-showcase {
-      padding: var(--space-5xl) 0;
-      background: linear-gradient(180deg, #E8EDF2 0%, #E2E8F0 100%);
-    }
-
-    .events-showcase-header {
-      text-align: center;
-      margin-bottom: var(--space-4xl);
-    }
-
-    .events-showcase-header .section-eyebrow { justify-content: center; }
-    .events-showcase-header .section-title {
-      font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl));
-      margin-bottom: var(--space-md);
-    }
-    .events-showcase-header .section-subtitle { margin: 0 auto; }
-
-    .events-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: var(--space-lg);
-      margin-bottom: var(--space-4xl);
-    }
-
-    .event-card {
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      background: linear-gradient(145deg, #F1F5F9 0%, #E8EDF2 100%);
-      border: 1px solid rgba(255,140,50,0.15);
-      transition: box-shadow 0.6s var(--ease-out), transform 0.6s var(--ease-out), border-color 0.6s;
-    }
-
-    .event-card:hover {
-      box-shadow: var(--shadow-xl), 0 0 20px rgba(255,140,50,0.25);
-      transform: translateY(-6px);
-      border-color: var(--neon-copper);
-    }
-
-    .event-card-image {
-      aspect-ratio: 4/3;
-      overflow: hidden;
-    }
-
-    .event-card-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      transition: transform 0.8s var(--ease-out);
-    }
-
-    .event-card:hover .event-card-image img { transform: scale(1.06); }
-
-    .event-card-body { padding: var(--space-xl); }
-
-    .event-card-type {
-      font-size: var(--text-xs);
-      font-weight: 600;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--neon-copper);
-      margin-bottom: var(--space-sm);
-      text-shadow: 0 0 8px rgba(255,140,50,0.3);
-    }
-
-    .event-card-title {
-      font-family: var(--font-display);
-      font-size: var(--text-xl);
-      font-weight: 500;
-      margin-bottom: var(--space-sm);
-    }
-
-    .event-card-desc {
-      font-size: var(--text-sm);
-      color: var(--text-secondary);
-      line-height: 1.6;
-      margin-bottom: var(--space-md);
-    }
-
-    .event-card-meta {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: var(--text-xs);
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-
-    .event-card-meta svg {
-      width: 16px;
-      height: 16px;
-      color: var(--neon-copper);
-    }
-
-    /* Capacity Banner — Obsidian glass */
-    .capacity-banner {
-      background: var(--dark-bg);
-      border-radius: var(--radius-xl);
-      padding: var(--space-3xl);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-3xl);
-      align-items: center;
-      margin-bottom: var(--space-4xl);
-      border: 1px solid rgba(255,140,50,0.12);
+      /* The EXTREMELY RICH GREY METALLIC section */
+      background: linear-gradient(145deg,
+        #222530 0%,
+        #2A2D38 20%,
+        #32363F 40%,
+        #2E3140 60%,
+        #282B36 80%,
+        #1E2128 100%);
       position: relative;
       overflow: hidden;
     }
-
-    .capacity-banner::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      opacity: 0.02;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    /* Copper gloss light reflection */
+    .intro::before {
+      content: ''; position: absolute;
+      top: -30%; left: -10%; width: 60%; height: 80%;
+      background: radial-gradient(ellipse, rgba(184,115,51,0.08) 0%, transparent 70%);
       pointer-events: none;
     }
-
-    .capacity-visual {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-md);
+    .intro::after {
+      content: ''; position: absolute;
+      bottom: -20%; right: -5%; width: 50%; height: 60%;
+      background: radial-gradient(ellipse, rgba(138,145,158,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    /* Metallic sheen divider */
+    .intro .metallic-top {
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(184,115,51,0.6), rgba(184,115,51,0.3), transparent);
+      box-shadow: 0 0 16px rgba(184,115,51,0.3);
     }
 
-    .capacity-stat {
-      background: var(--dark-card);
-      border-radius: var(--radius-md);
-      padding: var(--space-xl);
-      text-align: center;
-      border: 1px solid rgba(255,140,50,0.1);
-      transition: border-color 0.3s, box-shadow 0.3s;
+    .intro .container { position: relative; z-index: 2; }
+    .intro-grid { max-width: 720px; margin: 0 auto; text-align: center; }
+    .intro-text { max-width: 720px; margin: 0 auto; }
+    .intro-text .section-eyebrow { justify-content: center; }
+    .intro-text .section-title { font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl)); margin-bottom: var(--space-lg); color: var(--lux-pearl); font-weight: 400; }
+    .intro-body {
+      color: var(--grey-pearl);
+      font-family: var(--font-accent);
+      font-size: clamp(var(--text-lg), 2vw, var(--text-xl));
+      line-height: 1.9; margin-bottom: var(--space-2xl);
+      font-style: italic; font-weight: 300;
     }
+    .intro-stats { display: flex; gap: var(--space-2xl); padding-top: var(--space-2xl); border-top: 1px solid rgba(184,115,51,0.15); }
+    .intro-stat-number { font-family: var(--font-display); font-size: var(--text-4xl); font-weight: 500; color: var(--copper-shine); line-height: 1; margin-bottom: var(--space-xs); text-shadow: 0 0 16px rgba(184,115,51,0.4); }
+    .intro-stat-label { font-size: var(--text-sm); color: var(--grey-silver); letter-spacing: 0.04em; }
 
-    .capacity-stat:hover {
-      border-color: var(--neon-copper);
-      box-shadow: 0 0 16px rgba(255,140,50,0.25), var(--shadow-gold);
+    /* ═══════════════════════════════════════════
+       ACCENT BANNER
+       ═══════════════════════════════════════════ */
+    .accent-banner {
+      background: linear-gradient(145deg, #1E2128 0%, #242730 50%, #1A1D24 100%);
+      padding: var(--space-4xl) 0; position: relative;
+      border-top: 1px solid rgba(184,115,51,0.12);
+      border-bottom: 1px solid rgba(184,115,51,0.12);
     }
-
-    .capacity-stat-icon {
-      width: 48px;
-      height: 48px;
-      background: rgba(255,140,50,0.06);
-      border: 1px solid rgba(255,140,50,0.15);
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto var(--space-md);
+    .accent-banner::before {
+      content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--copper), transparent);
+      box-shadow: 0 0 12px rgba(184,115,51,0.5);
     }
+    .accent-banner-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-xl); }
+    .accent-banner-text { color: var(--lux-pearl); }
+    .accent-banner-text h3 { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 400; margin-bottom: var(--space-xs); }
+    .accent-banner-text p { font-family: var(--font-accent); font-size: var(--text-lg); color: var(--grey-silver); font-style: italic; }
 
-    .capacity-stat-icon svg {
-      width: 24px;
-      height: 24px;
-      color: var(--neon-copper);
-    }
-
-    .capacity-stat-number {
-      font-family: var(--font-display);
-      font-size: var(--text-3xl);
-      font-weight: 500;
-      color: var(--neon-copper);
-      line-height: 1;
-      margin-bottom: var(--space-xs);
-      text-shadow: 0 0 12px rgba(255,140,50,0.4);
-    }
-
-    .capacity-stat-label {
-      font-size: var(--text-xs);
-      color: #64748B;
-      font-weight: 500;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-
-    /* Inquiry Section — Obsidian */
-    .inquiry-section {
-      padding: var(--space-5xl) 0;
-      background: var(--dark-bg);
+    /* ═══════════════════════════════════════════
+       FOOTER
+       ═══════════════════════════════════════════ */
+    .footer {
+      background: linear-gradient(180deg, #1A1D22 0%, #131519 100%);
+      padding: var(--space-4xl) 0 var(--space-xl);
+      color: var(--grey-silver);
       position: relative;
     }
-
-    .inquiry-section::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 10%;
-      right: 10%;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--neon-copper), transparent);
-      box-shadow: 0 0 10px rgba(255,140,50,0.3);
+    .footer::before {
+      content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--copper), transparent);
+      box-shadow: 0 0 10px rgba(184,115,51,0.4);
     }
+    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: var(--space-3xl); margin-bottom: var(--space-3xl); padding-bottom: var(--space-3xl); border-bottom: 1px solid rgba(184,115,51,0.08); }
+    .footer-brand .nav-brand-name { color: var(--lux-white); margin-bottom: var(--space-sm); }
+    .footer-brand .nav-brand-sub { color: var(--grey-silver); margin-bottom: var(--space-lg); }
+    .footer-brand-desc { font-size: var(--text-sm); line-height: 1.7; color: var(--grey-silver); max-width: 320px; }
+    .footer-col-title { font-family: var(--font-display); font-size: var(--text-base); font-weight: 500; color: var(--lux-white); margin-bottom: var(--space-lg); }
+    .footer-links { list-style: none; display: flex; flex-direction: column; gap: var(--space-sm); }
+    .footer-links a { font-size: var(--text-sm); color: var(--grey-silver); transition: color 0.3s; }
+    .footer-links a:hover { color: var(--copper-shine); }
+    .footer-bottom { display: flex; justify-content: space-between; align-items: center; font-size: var(--text-xs); color: #475569; }
+    .footer-social { display: flex; gap: var(--space-md); }
+    .footer-social a { width: 36px; height: 36px; border-radius: 50%; border: 1px solid rgba(184,115,51,0.18); display: flex; align-items: center; justify-content: center; color: var(--grey-silver); transition: all 0.3s; }
+    .footer-social a:hover { border-color: var(--copper); color: var(--copper-shine); background: rgba(184,115,51,0.07); box-shadow: 0 0 12px rgba(184,115,51,0.35); }
 
-    .inquiry-grid {
-      display: grid;
-      grid-template-columns: 5fr 7fr;
-      gap: var(--space-4xl);
-      align-items: start;
+    /* ═══════════════════════════════════════════
+       PAGE HERO (inner pages)
+       ═══════════════════════════════════════════ */
+    .page-hero { position: relative; height: 55vh; min-height: 400px; display: flex; align-items: flex-end; overflow: hidden; }
+    .page-hero-bg { position: absolute; inset: 0; }
+    .page-hero-bg img { width: 100%; height: 100%; object-fit: cover; }
+    .page-hero-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(30,33,40,0.45) 0%, rgba(30,33,40,0.88) 100%), linear-gradient(90deg, rgba(30,33,40,0.3) 0%, transparent 50%); }
+    .page-hero-content { position: relative; z-index: 2; width: 100%; max-width: var(--max-width); margin: 0 auto; padding: 0 var(--space-xl) var(--space-3xl); }
+    .page-hero-content .section-eyebrow { color: var(--copper-shine); }
+    .page-hero-content .section-title { font-size: clamp(var(--text-4xl), 5vw, var(--text-6xl)); color: var(--lux-white); margin-bottom: var(--space-sm); }
+    .page-hero-content .section-subtitle { color: rgba(232,226,216,0.65); }
+
+    /* ═══════════════════════════════════════════
+       ROOMS SECTION — Lux white
+       ═══════════════════════════════════════════ */
+    .rooms-section { padding: var(--space-5xl) 0; background: rgba(245,240,234,0.82); }
+    .rooms-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--space-2xl); }
+    .room-card { border-radius: var(--radius-lg); overflow: hidden; background: rgba(250,248,245,0.92); border: 1px solid rgba(184,115,51,0.18); transition: box-shadow 0.6s, transform 0.6s, border-color 0.6s; }
+    .room-card:hover { box-shadow: var(--shadow-xl), 0 0 24px rgba(184,115,51,0.25); transform: translateY(-4px); border-color: var(--copper); }
+    .room-card-image { position: relative; aspect-ratio: 16/10; overflow: hidden; }
+    .room-card-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s var(--ease-out); }
+    .room-card:hover .room-card-image img { transform: scale(1.05); }
+    .room-card-badge { position: absolute; top: var(--space-md); left: var(--space-md); padding: 6px 14px; background: rgba(30,33,40,0.7); color: var(--copper-shine); font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; border-radius: var(--radius-sm); border: 1px solid var(--copper); box-shadow: var(--copper-wire); backdrop-filter: blur(8px); }
+    .room-card-body { padding: var(--space-xl); }
+    .room-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-md); }
+    .room-card-name { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 500; color: var(--text-primary); }
+    .room-card-price { text-align: right; }
+    .room-card-price .price { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 600; color: var(--copper); }
+    .room-card-price .per-night { font-size: var(--text-xs); color: var(--text-muted); }
+    .room-card-desc { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.7; margin-bottom: var(--space-lg); }
+    .room-amenities { display: flex; flex-wrap: wrap; gap: var(--space-md); padding: var(--space-lg) 0; border-top: 1px solid rgba(184,115,51,0.12); border-bottom: 1px solid rgba(184,115,51,0.12); margin-bottom: var(--space-lg); }
+    .amenity { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--text-secondary); font-weight: 500; }
+    .amenity svg { width: 18px; height: 18px; color: var(--copper); }
+    .room-calendar { background: var(--lux-pearl); border-radius: var(--radius-md); padding: var(--space-md); margin-bottom: var(--space-lg); border: 1px solid rgba(184,115,51,0.15); }
+    .room-calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-md); }
+    .room-calendar-title { font-family: var(--font-display); font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+    .room-calendar-nav { display: flex; gap: var(--space-xs); }
+    .room-calendar-nav button { width: 28px; height: 28px; border-radius: var(--radius-sm); border: 1px solid rgba(184,115,51,0.2); display: flex; align-items: center; justify-content: center; color: var(--text-secondary); background: rgba(250,248,245,0.6); transition: all 0.2s; }
+    .room-calendar-nav button:hover { border-color: var(--copper); color: var(--copper); box-shadow: 0 0 8px rgba(184,115,51,0.35); }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .calendar-day-label { text-align: center; font-size: 10px; font-weight: 600; color: var(--text-muted); padding: 4px; text-transform: uppercase; }
+    .calendar-day { text-align: center; padding: 6px 2px; font-size: var(--text-xs); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; color: var(--text-primary); }
+    .calendar-day:hover { background: rgba(184,115,51,0.12); }
+    .calendar-day.available { background: rgba(250,248,245,0.6); }
+    .calendar-day.booked { color: #94A3B8; text-decoration: line-through; cursor: default; }
+    .calendar-day.booked:hover, .calendar-day.empty:hover { background: transparent; }
+    .room-card-actions { display: flex; gap: var(--space-sm); }
+    .room-card-actions .btn-primary { flex: 1; justify-content: center; padding: 14px 24px; }
+
+    /* ═══════════════════════════════════════════
+       EVENTS SECTION
+       ═══════════════════════════════════════════ */
+    .events-showcase { padding: var(--space-5xl) 0; background: rgba(245,240,234,0.82); }
+    .events-showcase-header { text-align: center; margin-bottom: var(--space-4xl); }
+    .events-showcase-header .section-eyebrow { justify-content: center; }
+    .events-showcase-header .section-title { font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl)); margin-bottom: var(--space-md); color: var(--text-primary); }
+    .events-showcase-header .section-subtitle { margin: 0 auto; color: var(--text-secondary); }
+    .events-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-lg); margin-bottom: var(--space-4xl); }
+    .event-card { border-radius: var(--radius-lg); overflow: hidden; background: rgba(250,248,245,0.92); border: 1px solid rgba(184,115,51,0.18); transition: box-shadow 0.6s, transform 0.6s, border-color 0.6s; }
+    .event-card:hover { box-shadow: var(--shadow-xl), 0 0 20px rgba(184,115,51,0.25); transform: translateY(-6px); border-color: var(--copper); }
+    .event-card-image { aspect-ratio: 4/3; overflow: hidden; }
+    .event-card-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.8s; }
+    .event-card:hover .event-card-image img { transform: scale(1.06); }
+    .event-card-body { padding: var(--space-xl); }
+    .event-card-type { font-size: var(--text-xs); font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--copper); margin-bottom: var(--space-sm); }
+    .event-card-title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 500; margin-bottom: var(--space-sm); color: var(--text-primary); }
+    .event-card-desc { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.6; margin-bottom: var(--space-md); }
+    .event-card-meta { display: flex; align-items: center; gap: 6px; font-size: var(--text-xs); color: var(--text-muted); font-weight: 500; }
+    .event-card-meta svg { width: 16px; height: 16px; color: var(--copper); }
+
+    /* Capacity Banner */
+    .capacity-banner {
+      background: linear-gradient(145deg, #222530, #2A2D38, #222530);
+      border-radius: var(--radius-xl); padding: var(--space-3xl);
+      display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3xl); align-items: center;
+      margin-bottom: var(--space-4xl); border: 1px solid rgba(184,115,51,0.15); position: relative; overflow: hidden;
     }
+    .capacity-stat { background: rgba(255,255,255,0.04); border-radius: var(--radius-md); padding: var(--space-xl); text-align: center; border: 1px solid rgba(184,115,51,0.12); transition: border-color 0.3s, box-shadow 0.3s; }
+    .capacity-stat:hover { border-color: var(--copper); box-shadow: 0 0 16px rgba(184,115,51,0.25); }
+    .capacity-stat-icon { width: 48px; height: 48px; background: rgba(184,115,51,0.06); border: 1px solid rgba(184,115,51,0.18); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-md); }
+    .capacity-stat-icon svg { width: 24px; height: 24px; color: var(--copper-shine); }
+    .capacity-stat-number { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 500; color: var(--copper-shine); line-height: 1; margin-bottom: var(--space-xs); text-shadow: 0 0 12px rgba(184,115,51,0.4); }
+    .capacity-stat-label { font-size: var(--text-xs); color: var(--grey-silver); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+    .capacity-visual { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
 
-    .inquiry-info .section-title {
-      font-size: clamp(var(--text-3xl), 3vw, var(--text-4xl));
-      margin-bottom: var(--space-md);
-      color: var(--white);
-      font-weight: 400;
-    }
-
-    .inquiry-info-text {
-      font-size: var(--text-base);
-      color: #78859A;
-      line-height: 1.8;
-      margin-bottom: var(--space-2xl);
-    }
-
-    .inquiry-contact-item {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      margin-bottom: var(--space-lg);
-    }
-
-    .inquiry-contact-icon {
-      width: 44px;
-      height: 44px;
-      min-width: 44px;
-      background: rgba(255,140,50,0.05);
-      border-radius: var(--radius-sm);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid rgba(255,140,50,0.15);
-    }
-
-    .inquiry-contact-icon svg {
-      width: 20px;
-      height: 20px;
-      color: var(--neon-copper);
-    }
-
-    .inquiry-contact-label {
-      font-size: var(--text-xs);
-      color: #64748B;
-      margin-bottom: 2px;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      font-weight: 500;
-    }
-
-    .inquiry-contact-value {
-      font-weight: 500;
-      color: #94A3B8;
-    }
-
-    /* Form — Obsidian glass */
-    .inquiry-form-card {
-      background: var(--dark-card);
-      border-radius: var(--radius-xl);
-      padding: var(--space-2xl);
-      box-shadow: var(--shadow-lg);
-      border: 1px solid rgba(255,140,50,0.12);
-    }
-
-    .inquiry-form-title {
-      font-family: var(--font-display);
-      font-size: var(--text-2xl);
-      font-weight: 400;
-      margin-bottom: var(--space-xs);
-      color: var(--white);
-    }
-
-    .inquiry-form-subtitle {
-      font-size: var(--text-sm);
-      color: #64748B;
-      margin-bottom: var(--space-2xl);
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: var(--space-md);
-    }
-
+    /* Inquiry Section */
+    .inquiry-section { padding: var(--space-5xl) 0; background: linear-gradient(145deg, #222530, #2A2D38); position: relative; }
+    .inquiry-section::before { content: ''; position: absolute; top: 0; left: 10%; right: 10%; height: 1px; background: linear-gradient(90deg, transparent, var(--copper), transparent); box-shadow: 0 0 10px rgba(184,115,51,0.35); }
+    .inquiry-grid { display: grid; grid-template-columns: 5fr 7fr; gap: var(--space-4xl); align-items: start; }
+    .inquiry-info .section-title { font-size: clamp(var(--text-3xl), 3vw, var(--text-4xl)); margin-bottom: var(--space-md); color: var(--lux-pearl); font-weight: 400; }
+    .inquiry-info-text { font-size: var(--text-base); color: var(--grey-pearl); line-height: 1.8; margin-bottom: var(--space-2xl); }
+    .inquiry-contact-item { display: flex; align-items: center; gap: var(--space-md); margin-bottom: var(--space-lg); }
+    .inquiry-contact-icon { width: 44px; height: 44px; min-width: 44px; background: rgba(184,115,51,0.06); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(184,115,51,0.18); }
+    .inquiry-contact-icon svg { width: 20px; height: 20px; color: var(--copper-shine); }
+    .inquiry-contact-label { font-size: var(--text-xs); color: var(--grey-silver); margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 500; }
+    .inquiry-contact-value { font-weight: 500; color: var(--grey-pearl); }
+    .inquiry-form-card { background: rgba(255,255,255,0.04); border-radius: var(--radius-xl); padding: var(--space-2xl); box-shadow: var(--shadow-lg); border: 1px solid rgba(184,115,51,0.15); }
+    .inquiry-form-title { font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 400; margin-bottom: var(--space-xs); color: var(--lux-pearl); }
+    .inquiry-form-subtitle { font-size: var(--text-sm); color: var(--grey-silver); margin-bottom: var(--space-2xl); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-md); }
     .form-group { margin-bottom: var(--space-lg); }
     .form-group.full { grid-column: 1 / -1; }
-
-    .form-label {
-      display: block;
-      font-size: var(--text-sm);
-      font-weight: 500;
-      color: #94A3B8;
-      margin-bottom: var(--space-sm);
-    }
-
-    .form-label .required { color: var(--neon-copper); }
-
-    .form-input,
-    .form-select,
-    .form-textarea {
-      width: 100%;
-      padding: 12px 16px;
-      background: rgba(3,3,3,0.6);
-      border: 1px solid rgba(255,140,50,0.1);
-      border-radius: var(--radius-md);
-      font-size: var(--text-sm);
-      color: var(--white);
-      transition: border-color 0.3s, box-shadow 0.3s;
-      outline: none;
-    }
-
-    .form-input:focus,
-    .form-select:focus,
-    .form-textarea:focus {
-      border-color: var(--neon-copper);
-      box-shadow: 0 0 12px rgba(255,140,50,0.2);
-      background: rgba(3,3,3,0.8);
-    }
-
-    .form-input::placeholder,
-    .form-textarea::placeholder {
-      color: #475569;
-    }
-
-    .form-textarea {
-      min-height: 120px;
-      resize: vertical;
-    }
-
-    .form-select {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23FF8C32' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 12px center;
-      padding-right: 40px;
-    }
-
-    .form-submit {
-      width: 100%;
-      padding: 16px;
-      margin-top: var(--space-sm);
-    }
+    .form-label { display: block; font-size: var(--text-sm); font-weight: 500; color: var(--grey-pearl); margin-bottom: var(--space-sm); }
+    .form-label .required { color: var(--copper-shine); }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 12px 16px; background: rgba(30,33,40,0.7); border: 1px solid rgba(184,115,51,0.12); border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--lux-white); transition: border-color 0.3s, box-shadow 0.3s; outline: none; }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--copper); box-shadow: 0 0 12px rgba(184,115,51,0.25); background: rgba(30,33,40,0.9); }
+    .form-input::placeholder, .form-textarea::placeholder { color: var(--grey-light); }
+    .form-textarea { min-height: 120px; resize: vertical; }
+    .form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23B87333' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 40px; }
+    .form-submit { width: 100%; padding: 16px; margin-top: var(--space-sm); }
 
     /* ═══════════════════════════════════════════
-       STICKY BOOK NOW (MOBILE)
+       STICKY MOBILE CTA
        ═══════════════════════════════════════════ */
-    .sticky-cta {
-      display: none;
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      z-index: 900;
-      background: rgba(3,3,3,0.9);
-      backdrop-filter: blur(16px);
-      border-top: 1px solid rgba(255,140,50,0.15);
-      padding: var(--space-md) var(--space-xl);
-      box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
-    }
-
-    .sticky-cta .btn-primary {
-      width: 100%;
-      justify-content: center;
-    }
+    .sticky-cta { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 900; background: rgba(30,33,40,0.95); backdrop-filter: blur(16px); border-top: 1px solid rgba(184,115,51,0.2); padding: var(--space-md) var(--space-xl); box-shadow: 0 -4px 20px rgba(0,0,0,0.3); }
+    .sticky-cta .btn-primary { width: 100%; justify-content: center; }
 
     /* ═══════════════════════════════════════════
-       PAGE TRANSITION
+       PAGE TRANSITIONS
        ═══════════════════════════════════════════ */
     .page { display: none; }
-    .page.active {
-      display: block;
-      animation: fadeIn 0.5s var(--ease-out);
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
+    .page.active { display: block; animation: pageIn 0.5s var(--ease-out); }
+    @keyframes pageIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ═══════════════════════════════════════════
        RESPONSIVE
@@ -1700,44 +844,25 @@
       .footer-grid { grid-template-columns: 1fr 1fr; gap: var(--space-2xl); }
       .capacity-banner { grid-template-columns: 1fr; }
     }
-
     @media (max-width: 768px) {
       :root { --nav-height: 64px; }
-
       .container { padding: 0 var(--space-md); }
-
       .nav-links { display: none; }
       .nav-cta.desktop { display: none; }
       .nav-toggle { display: flex; }
-
       .hero { min-height: 600px; }
       .hero-content { padding: 0 var(--space-md) var(--space-3xl); }
       .hero-actions { flex-direction: column; align-items: flex-start; }
       .hero-scroll { display: none; }
-
-      .intro-grid { grid-template-columns: 1fr; gap: var(--space-2xl); }
-      .intro-image { aspect-ratio: 3/2; order: -1; }
-      .intro-stats { flex-direction: column; gap: var(--space-lg); }
-
       .features-grid { grid-template-columns: 1fr; }
       .feature-card { aspect-ratio: 3/2; }
-
       .events-grid { grid-template-columns: 1fr; }
-
       .capacity-visual { grid-template-columns: 1fr 1fr; }
-
       .form-row { grid-template-columns: 1fr; }
-
       .footer-grid { grid-template-columns: 1fr; }
-
       .sticky-cta { display: block; }
-
-      .accent-banner-inner {
-        flex-direction: column;
-        text-align: center;
-      }
+      .accent-banner-inner { flex-direction: column; text-align: center; }
     }
-
     @media (max-width: 480px) {
       .hero-tagline { font-size: 2rem; }
       .capacity-visual { grid-template-columns: 1fr; }
@@ -1746,14 +871,16 @@
 </head>
 <body>
 
+  <!-- FLUID ART CANVAS — metallic copper/grey stirring paint -->
+  <canvas id="fluidCanvas"></canvas>
+
   <!-- NAVIGATION -->
   <nav class="nav" id="mainNav">
     <div class="nav-inner">
       <a href="#" class="nav-brand" onclick="navigateTo('home')">
-        <span class="nav-brand-name">Swaby's Hope Hideaway LLC</span>
+        <span class="nav-brand-name">Swaby's Hope Hideaway Ltd</span>
         <span class="nav-brand-sub">Spur Tree, Jamaica</span>
       </a>
-
       <ul class="nav-links">
         <li><a class="nav-link active" data-page="home" onclick="navigateTo('home')">Home</a></li>
         <li><a class="nav-link" data-page="rooms" onclick="navigateTo('rooms')">Accommodation</a></li>
@@ -1761,12 +888,10 @@
         <li><a class="nav-link" href="#">Dining</a></li>
         <li><a class="nav-link" href="#">Gallery</a></li>
       </ul>
-
       <button class="nav-cta desktop" onclick="scrollToBooking()">
         Book Now
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
       </button>
-
       <button class="nav-toggle" id="navToggle" onclick="toggleMobileMenu()">
         <span></span><span></span><span></span>
       </button>
@@ -1781,7 +906,7 @@
     <a class="nav-link" onclick="navigateTo('events'); toggleMobileMenu();">Weddings &amp; Events</a>
     <a class="nav-link" href="#">Dining</a>
     <a class="nav-link" href="#">Gallery</a>
-    <button class="btn-primary" onclick="navigateTo('rooms'); toggleMobileMenu();">Book Now</button>
+    <button class="btn-hero-solid" onclick="navigateTo('rooms'); toggleMobileMenu();" style="margin-top:var(--space-lg);">Book Now</button>
   </div>
 
   <!-- PAGE 1: HOME -->
@@ -1791,43 +916,36 @@
     <section class="hero">
       <div class="hero-bg">
         <picture>
-          <source
-            media="(min-width: 601px)"
-            srcset="https://firebasestorage.googleapis.com/v0/b/swabys-hope-hideaway.firebasestorage.app/o/IMG_4%20u.png?alt=media&token=7a3fc9ab-13b2-441a-ad6d-879718bbf03d"
-          />
-          <img
-            src="https://firebasestorage.googleapis.com/v0/b/swabys-hope-hideaway.firebasestorage.app/o/IMG_4%20n.png?alt=media&token=160031e6-10e1-4574-80e3-c13961d3a7af"
-            alt="Swaby's Hope Hideaway — Spur Tree, Mandeville, Jamaica"
-          />
+          <source media="(min-width: 601px)" srcset="https://firebasestorage.googleapis.com/v0/b/swabys-hope-hideaway.firebasestorage.app/o/IMG_4%20u.png?alt=media&token=7a3fc9ab-13b2-441a-ad6d-879718bbf03d" />
+          <img src="https://firebasestorage.googleapis.com/v0/b/swabys-hope-hideaway.firebasestorage.app/o/IMG_4%20n.png?alt=media&token=160031e6-10e1-4574-80e3-c13961d3a7af" alt="Swaby's Hope Hideaway — Spur Tree, Mandeville, Jamaica" />
         </picture>
       </div>
-
       <div class="hero-content">
-        <h1 class="hero-tagline" style="color:#F1F5F9;">Use Our <em>Hideaway</em><br/>for Your Getaway</h1>
-        <p class="hero-description">An intimate boutique retreat perched in Jamaica's cool, tranquil hills — where warmth, elegance, and panoramic beauty meet.</p>
-        <div class="hero-actions">
-          <button class="btn-primary" onclick="navigateTo('rooms')">
+        <h1 class="hero-tagline reveal">Use Our <em>Hideaway</em><br/>for Your Getaway</h1>
+        <p class="hero-description reveal" style="transition-delay:0.15s;">An intimate boutique retreat perched in Jamaica's cool, tranquil hills where warmth, elegance, and panoramic beauty meet.</p>
+        <div class="hero-actions reveal" style="transition-delay:0.3s;">
+          <button class="btn-hero-solid" onclick="navigateTo('rooms')">
             Explore Our Rooms
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </button>
         </div>
       </div>
-
       <div class="hero-scroll">
         <div class="hero-scroll-line"></div>
-        Discover
+        Scroll
       </div>
     </section>
 
     <!-- FEATURES -->
     <section class="features">
       <div class="container">
-        <div class="features-header">
+        <div class="features-header reveal">
+          <div class="section-eyebrow">Experience</div>
           <h2 class="section-title">Your Hideaway Awaits</h2>
         </div>
-        <div class="features-grid">
+        <div class="features-grid reveal-stagger">
           <!-- Boutique Rooms -->
-          <div class="feature-card" onclick="navigateTo('rooms')">
+          <div class="feature-card" data-slot="feature_boutique_rooms" onclick="navigateTo('rooms')">
             <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=600&q=80&auto=format" alt="Luxurious boutique hotel room" />
             <div class="feature-card-overlay">
               <div class="feature-card-icon">
@@ -1838,7 +956,7 @@
             </div>
           </div>
           <!-- Restaurant & Oak Bar -->
-          <div class="feature-card">
+          <div class="feature-card" data-slot="feature_restaurant">
             <img src="https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=600&q=80&auto=format" alt="Intimate restaurant and bar setting" />
             <div class="feature-card-overlay">
               <div class="feature-card-icon">
@@ -1849,8 +967,8 @@
             </div>
           </div>
           <!-- Event Hall -->
-          <div class="feature-card" onclick="navigateTo('events')">
-            <img src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=600&q=80&auto=format" alt="Elegant event hall decorated for a celebration" />
+          <div class="feature-card" data-slot="feature_event_hall" onclick="navigateTo('events')">
+            <img src="https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=600&q=80&auto=format" alt="Elegant event hall" />
             <div class="feature-card-overlay">
               <div class="feature-card-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -1860,8 +978,8 @@
             </div>
           </div>
           <!-- Scenic Views -->
-          <div class="feature-card">
-            <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=80&auto=format" alt="Panoramic mountain vista at sunrise" />
+          <div class="feature-card" data-slot="feature_scenic_views">
+            <img src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=600&q=80&auto=format" alt="Panoramic mountain vista" />
             <div class="feature-card-overlay">
               <div class="feature-card-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5S13.67 7 14.5 7s1.5.67 1.5 1.5S15.33 10 14.5 10z"/><path d="M21 15l-5-5L5 21"/><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
@@ -1874,14 +992,15 @@
       </div>
     </section>
 
-    <!-- INTRO -->
+    <!-- INTRO — EXTREMELY RICH GREY METALLIC -->
     <section class="intro">
+      <div class="metallic-top"></div>
       <div class="container">
         <div class="intro-grid">
           <div class="intro-text">
-            <div class="section-eyebrow">Our Story</div>
-            <h2 class="section-title">Where the Hills<br/>Whisper Serenity</h2>
-            <p class="intro-body">
+            <div class="section-eyebrow reveal">Our Story</div>
+            <h2 class="section-title reveal" style="transition-delay:0.1s;">Where the Hills<br/>Whisper Serenity</h2>
+            <p class="intro-body reveal" style="transition-delay:0.2s;">
               Perched above the clouds in Spur Tree, Mandeville, Swaby's Hope Hideaway is more than a hotel — it is a feeling. Cool mountain breezes carry the scent of wild coffee and tropical blooms through every room, while panoramic views of the Manchester hills stretch endlessly before you. Here, Jamaican hospitality isn't performed. It's lived.
             </p>
             <div class="intro-stats">
@@ -1895,11 +1014,11 @@
     <section class="accent-banner">
       <div class="container">
         <div class="accent-banner-inner">
-          <div class="accent-banner-text">
+          <div class="accent-banner-text reveal reveal-left">
             <h3>Ready to Escape the Ordinary?</h3>
             <p>Limited rooms available — each stay is as unique as you are.</p>
           </div>
-          <button class="btn-white" onclick="navigateTo('rooms')">View Accommodation</button>
+          <button class="btn-white reveal reveal-right" onclick="navigateTo('rooms')">View Accommodation</button>
         </div>
       </div>
     </section>
@@ -1909,18 +1028,16 @@
 
   <!-- PAGE 2: ACCOMMODATION -->
   <div class="page" id="page-rooms">
-
     <section class="page-hero">
       <div class="page-hero-bg">
-        <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1920&q=85&auto=format" alt="Boutique hotel room with mountain view" />
+        <img src="https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=1920&q=85&auto=format" alt="Boutique hotel room with mountain view" data-slot="rooms_page_hero" />
       </div>
       <div class="page-hero-content">
-        <div class="section-eyebrow">Accommodation</div>
-        <h1 class="section-title">Our Boutique Rooms</h1>
-        <p class="section-subtitle">Every room tells a story — yours begins with a view of the hills.</p>
+        <div class="section-eyebrow reveal">Accommodation</div>
+        <h1 class="section-title reveal" style="transition-delay:0.1s;">Our Boutique Rooms</h1>
+        <p class="section-subtitle reveal" style="transition-delay:0.2s;">Every room tells a story — yours begins with a view of the hills.</p>
       </div>
     </section>
-
     <section class="rooms-section">
       <div class="container">
         <div class="rooms-grid" id="roomsGrid">
@@ -1928,36 +1045,31 @@
         </div>
       </div>
     </section>
-
   </div><!-- /page-rooms -->
 
 
   <!-- PAGE 3: WEDDINGS & EVENTS -->
   <div class="page" id="page-events">
-
     <section class="page-hero">
       <div class="page-hero-bg">
-        <img src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1920&q=85&auto=format" alt="Elegant outdoor wedding setup in tropical setting" />
+        <img src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=1920&q=85&auto=format" alt="Elegant outdoor wedding setup in tropical setting" data-slot="events_page_hero" />
       </div>
       <div class="page-hero-content">
-        <div class="section-eyebrow">Celebrate With Us</div>
-        <h1 class="section-title">Weddings &amp; Events</h1>
-        <p class="section-subtitle">Where milestone moments meet the magic of Jamaica's hills.</p>
+        <div class="section-eyebrow reveal">Celebrate With Us</div>
+        <h1 class="section-title reveal" style="transition-delay:0.1s;">Weddings &amp; Events</h1>
+        <p class="section-subtitle reveal" style="transition-delay:0.2s;">Where milestone moments meet the magic of Jamaica's hills.</p>
       </div>
     </section>
 
-    <!-- Event Showcase -->
     <section class="events-showcase">
       <div class="container">
-        <div class="events-showcase-header">
+        <div class="events-showcase-header reveal">
           <div class="section-eyebrow">Hosting Capabilities</div>
           <h2 class="section-title">Every Occasion, Elevated</h2>
           <p class="section-subtitle">From intimate vows exchanged at sunset to corporate retreats that inspire — we make it unforgettable.</p>
         </div>
-
-        <div class="events-grid">
-          <!-- Weddings -->
-          <div class="event-card">
+        <div class="events-grid reveal-stagger">
+          <div class="event-card" data-slot="event_weddings">
             <div class="event-card-image">
               <img src="https://images.unsplash.com/photo-1519741497674-611481863552?w=600&q=80&auto=format" alt="Romantic hilltop wedding ceremony" />
             </div>
@@ -1971,8 +1083,7 @@
               </div>
             </div>
           </div>
-          <!-- Corporate -->
-          <div class="event-card">
+          <div class="event-card" data-slot="event_corporate">
             <div class="event-card-image">
               <img src="https://images.unsplash.com/photo-1505373877841-8d25f7d46678?w=600&q=80&auto=format" alt="Corporate conference in modern setting" />
             </div>
@@ -1986,8 +1097,7 @@
               </div>
             </div>
           </div>
-          <!-- Birthdays -->
-          <div class="event-card">
+          <div class="event-card" data-slot="event_celebrations">
             <div class="event-card-image">
               <img src="https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600&q=80&auto=format" alt="Birthday celebration with elegant decor" />
             </div>
@@ -2003,146 +1113,61 @@
           </div>
         </div>
 
-        <!-- Capacity Banner -->
-        <div class="capacity-banner">
+        <div class="capacity-banner reveal">
           <div>
             <div class="section-eyebrow">Venue Capacity</div>
-            <h3 class="section-title" style="font-size:clamp(var(--text-2xl),3vw,var(--text-4xl));margin-bottom:var(--space-md);color:var(--white);">Built for Gatherings<br/>of Every Scale</h3>
-            <p style="color:#78859A;line-height:1.7;max-width:440px;font-family:var(--font-accent);font-style:italic;">Our versatile spaces adapt to your vision — whether you're hosting thirty close friends or two hundred guests for the event of a lifetime.</p>
+            <h3 class="section-title" style="font-size:clamp(var(--text-2xl),3vw,var(--text-4xl));margin-bottom:var(--space-md);color:var(--lux-pearl);">Built for Gatherings<br/>of Every Scale</h3>
+            <p style="color:var(--grey-pearl);line-height:1.7;max-width:440px;font-family:var(--font-accent);font-style:italic;">Our versatile spaces adapt to your vision — whether you're hosting thirty close friends or two hundred guests for the event of a lifetime.</p>
           </div>
           <div class="capacity-visual">
-            <div class="capacity-stat">
-              <div class="capacity-stat-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
-              </div>
-              <div class="capacity-stat-number">200</div>
-              <div class="capacity-stat-label">Max Guests</div>
-            </div>
-            <div class="capacity-stat">
-              <div class="capacity-stat-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-              </div>
-              <div class="capacity-stat-number">3</div>
-              <div class="capacity-stat-label">Event Spaces</div>
-            </div>
-            <div class="capacity-stat">
-              <div class="capacity-stat-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <div class="capacity-stat-number">12hr</div>
-              <div class="capacity-stat-label">Full-Day Access</div>
-            </div>
-            <div class="capacity-stat">
-              <div class="capacity-stat-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-              </div>
-              <div class="capacity-stat-number">A+</div>
-              <div class="capacity-stat-label">Service Rating</div>
-            </div>
+            <div class="capacity-stat"><div class="capacity-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4-4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><div class="capacity-stat-number">200</div><div class="capacity-stat-label">Max Guests</div></div>
+            <div class="capacity-stat"><div class="capacity-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div><div class="capacity-stat-number">3</div><div class="capacity-stat-label">Event Spaces</div></div>
+            <div class="capacity-stat"><div class="capacity-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div class="capacity-stat-number">12hr</div><div class="capacity-stat-label">Full-Day Access</div></div>
+            <div class="capacity-stat"><div class="capacity-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></div><div class="capacity-stat-number">A+</div><div class="capacity-stat-label">Service Rating</div></div>
           </div>
         </div>
-
       </div>
     </section>
 
-    <!-- Inquiry Form -->
     <section class="inquiry-section" id="inquirySection">
       <div class="container">
         <div class="inquiry-grid">
-          <div class="inquiry-info">
+          <div class="inquiry-info reveal reveal-left">
             <div class="section-eyebrow">Get in Touch</div>
             <h2 class="section-title">Plan Your Perfect Event</h2>
-            <p class="inquiry-info-text">
-              Tell us about your vision and our dedicated events team will craft a bespoke proposal tailored to your celebration. From intimate gatherings to grand affairs, every detail matters to us.
-            </p>
+            <p class="inquiry-info-text">Tell us about your vision and our dedicated events team will craft a bespoke proposal tailored to your celebration.</p>
             <div>
-              <div class="inquiry-contact-item">
-                <div class="inquiry-contact-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
-                </div>
-                <div>
-                  <div class="inquiry-contact-label">Phone</div>
-                  <div class="inquiry-contact-value">+1 (876) 555-0199</div>
-                </div>
-              </div>
-              <div class="inquiry-contact-item">
-                <div class="inquiry-contact-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                </div>
-                <div>
-                  <div class="inquiry-contact-label">Email</div>
-                  <div class="inquiry-contact-value">events@swabyshopehotel.com</div>
-                </div>
-              </div>
-              <div class="inquiry-contact-item">
-                <div class="inquiry-contact-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                </div>
-                <div>
-                  <div class="inquiry-contact-label">Location</div>
-                  <div class="inquiry-contact-value">Spur Tree, Mandeville, Manchester, Jamaica</div>
-                </div>
-              </div>
+              <div class="inquiry-contact-item"><div class="inquiry-contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg></div><div><div class="inquiry-contact-label">Phone</div><div class="inquiry-contact-value">+1 (876) 555-0199</div></div></div>
+              <div class="inquiry-contact-item"><div class="inquiry-contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div><div class="inquiry-contact-label">Email</div><div class="inquiry-contact-value">events@swabyshopehotel.com</div></div></div>
+              <div class="inquiry-contact-item"><div class="inquiry-contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="inquiry-contact-label">Location</div><div class="inquiry-contact-value">Spur Tree, Mandeville, Manchester, Jamaica</div></div></div>
             </div>
           </div>
-
-          <div class="inquiry-form-card">
+          <div class="inquiry-form-card reveal reveal-right">
             <h3 class="inquiry-form-title">Event Inquiry</h3>
             <p class="inquiry-form-subtitle">Fill out the details below and we'll respond within 24 hours.</p>
-
             <div id="inquiryForm">
               <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Full Name <span class="required">*</span></label>
-                  <input type="text" class="form-input" placeholder="Your full name" id="formName" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Email Address <span class="required">*</span></label>
-                  <input type="email" class="form-input" placeholder="you@email.com" id="formEmail" />
-                </div>
+                <div class="form-group"><label class="form-label">Full Name <span class="required">*</span></label><input type="text" class="form-input" placeholder="Your full name" id="formName" /></div>
+                <div class="form-group"><label class="form-label">Email Address <span class="required">*</span></label><input type="email" class="form-input" placeholder="you@email.com" id="formEmail" /></div>
               </div>
               <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Event Type <span class="required">*</span></label>
-                  <select class="form-select" id="formEventType">
-                    <option value="" disabled selected>Select event type</option>
-                    <option value="wedding">Wedding</option>
-                    <option value="corporate">Corporate Conference</option>
-                    <option value="birthday">Birthday Celebration</option>
-                    <option value="reunion">Family Reunion</option>
-                    <option value="retreat">Retreat / Workshop</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Estimated Guest Count <span class="required">*</span></label>
-                  <input type="number" class="form-input" placeholder="e.g. 120" id="formGuests" min="1" max="300" />
-                </div>
+                <div class="form-group"><label class="form-label">Event Type <span class="required">*</span></label><select class="form-select" id="formEventType"><option value="" disabled selected>Select event type</option><option value="wedding">Wedding</option><option value="corporate">Corporate Conference</option><option value="birthday">Birthday Celebration</option><option value="reunion">Family Reunion</option><option value="retreat">Retreat / Workshop</option><option value="other">Other</option></select></div>
+                <div class="form-group"><label class="form-label">Estimated Guest Count <span class="required">*</span></label><input type="number" class="form-input" placeholder="e.g. 120" id="formGuests" min="1" max="300" /></div>
               </div>
               <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Preferred Date</label>
-                  <input type="date" class="form-input" id="formDate" />
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Phone Number</label>
-                  <input type="tel" class="form-input" placeholder="+1 (876) ..." id="formPhone" />
-                </div>
+                <div class="form-group"><label class="form-label">Preferred Date</label><input type="date" class="form-input" id="formDate" /></div>
+                <div class="form-group"><label class="form-label">Phone Number</label><input type="tel" class="form-input" placeholder="+1 (876) ..." id="formPhone" /></div>
               </div>
-              <div class="form-group full">
-                <label class="form-label">Special Requests or Details</label>
-                <textarea class="form-textarea" placeholder="Tell us about your vision — theme, dietary needs, entertainment preferences, or anything else we should know..." id="formRequests"></textarea>
-              </div>
+              <div class="form-group full"><label class="form-label">Special Requests or Details</label><textarea class="form-textarea" placeholder="Tell us about your vision..." id="formRequests"></textarea></div>
               <button class="btn-primary form-submit" onclick="handleFormSubmit()">
                 Submit Inquiry
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
               </button>
             </div>
           </div>
         </div>
       </div>
     </section>
-
   </div><!-- /page-events -->
 
 
@@ -2152,12 +1177,10 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="nav-brand">
-            <span class="nav-brand-name">Swaby's Hope Hideaway LLC</span>
+            <span class="nav-brand-name">Swaby's Hope Hideaway Ltd</span>
             <span class="nav-brand-sub">Boutique Hotel · Jamaica</span>
           </div>
-          <p class="footer-brand-desc" style="margin-top:var(--space-lg);">
-            An intimate retreat perched in the cool hills of Spur Tree, Mandeville. Where warmth, elegance, and nature converge.
-          </p>
+          <p class="footer-brand-desc" style="margin-top:var(--space-lg);">An intimate retreat perched in the cool hills of Spur Tree, Mandeville. Where warmth, elegance, and nature converge.</p>
         </div>
         <div>
           <h4 class="footer-col-title">Explore</h4>
@@ -2190,132 +1213,283 @@
         </div>
       </div>
       <div class="footer-bottom">
-        <span>&copy; 2026 Swaby's Hope Hideaway LLC. All rights reserved.</span>
+        <span>&copy; 2026 Swaby's Hope Hideaway Ltd. All rights reserved.</span>
         <div class="footer-social">
-          <a href="#" aria-label="Instagram">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-          </a>
-          <a href="#" aria-label="Facebook">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg>
-          </a>
-          <a href="#" aria-label="Twitter">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg>
-          </a>
+          <a href="#" aria-label="Instagram"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+          <a href="#" aria-label="Facebook"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"/></svg></a>
+          <a href="#" aria-label="Twitter"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"/></svg></a>
         </div>
       </div>
     </div>
   </footer>
 
 
+
   <!-- JAVASCRIPT -->
   <script>
-    /* ROOM DATA */
-    const ROOMS_DATA = [
-      {
-        id: 'spur-tree-suite',
-        name: 'Spur Tree Suite',
-        badge: 'Signature',
-        description: 'Our most spacious offering with a private balcony overlooking the Manchester hills. King-sized bed, rainfall shower, and handcrafted mahogany furnishings throughout.',
-        price: 185,
-        image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=85&auto=format'
-      },
-      {
-        id: 'mandeville-retreat',
-        name: 'Mandeville Retreat',
-        badge: 'Popular',
-        description: 'A serene queen-bedded room with floor-to-ceiling windows framing the garden courtyard. Ideal for couples seeking a peaceful mountain escape.',
-        price: 145,
-        image: 'https://images.unsplash.com/photo-1590490360182-c33d955e5bbf?w=800&q=85&auto=format'
-      },
-      {
-        id: 'hilltop-haven',
-        name: 'Hilltop Haven',
-        badge: 'Panoramic View',
-        description: 'Wake to 180-degree views of Jamaica\'s Blue Mountains. A luxe king room with a writing desk, artisan minibar, and deep soaking tub.',
-        price: 165,
-        image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=85&auto=format'
-      },
-      {
-        id: 'garden-cottage',
-        name: 'Garden Cottage',
-        badge: 'Intimate',
-        description: 'A standalone cottage nestled among tropical blooms. Features a private patio, outdoor shower, and hand-woven Jamaican textiles.',
-        price: 210,
-        image: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=85&auto=format'
+    /* ════════════════════════════════════════
+       FLUID ART CANVAS — Premium metallic paint
+       
+       Concept: Rich metallic grey IS the base.
+       Three paint colours haven't finished mixing:
+         1. Warm luxurious white/cream
+         2. Metallic copper-orange
+         3. Silver/platinum
+       They drift in slow organic blobs over the grey base.
+       Scroll gives a very gentle nudge — not distracting.
+       Sections get a semi-transparent overlay so photos
+       and text remain completely clear.
+    ════════════════════════════════════════ */
+    (function() {
+      const canvas = document.getElementById('fluidCanvas');
+      const ctx = canvas.getContext('2d');
+
+      let W, H, time = 0;
+      let scrollVel = 0, lastScrollY = 0, smoothScroll = 0;
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
       }
+      resize();
+      window.addEventListener('resize', resize);
+
+      window.addEventListener('scroll', () => {
+        const sy = window.scrollY;
+        scrollVel = (sy - lastScrollY) * 0.6; // gentle nudge only
+        lastScrollY = sy;
+      }, { passive: true });
+
+      // ── The three unmixed paints drifting over grey base ──
+      // Each "blob" is a large soft paint deposit
+      const seed = () => Math.random();
+
+      const PAINT_GROUPS = [
+        // 1) Warm lux white/cream — largest blobs, very soft
+        { r:250, g:246, b:240, label:'cream',  count:4, alpha:[0.13,0.10,0.09,0.08], rScale:[0.55,0.45,0.40,0.35] },
+        // 2) Metallic copper-orange — medium blobs
+        { r:184, g:115, b:51,  label:'copper', count:3, alpha:[0.14,0.11,0.09],      rScale:[0.32,0.26,0.22] },
+        // 3) Silver/platinum — thinner streaks
+        { r:192, g:198, b:210, label:'silver', count:3, alpha:[0.09,0.07,0.06],      rScale:[0.40,0.30,0.25] },
+      ];
+
+      const blobs = [];
+      PAINT_GROUPS.forEach(g => {
+        for (let i = 0; i < g.count; i++) {
+          blobs.push({
+            // Spread across viewport, don't cluster
+            x:     0.08 + seed() * 0.84,
+            y:     0.05 + seed() * 0.90,
+            r:     g.rScale[i],
+            // Very slow autonomous drift
+            vx:    (seed() - 0.5) * 0.000055,
+            vy:    (seed() - 0.5) * 0.000045,
+            phase: seed() * Math.PI * 2,
+            // Each blob breathes at slightly different rate
+            breatheX: 0.0004 + seed() * 0.0003,
+            breatheY: 0.0003 + seed() * 0.0002,
+            // Warp offsets for organic shape
+            wx: seed() * Math.PI * 2,
+            wy: seed() * Math.PI * 2,
+            // Paint
+            r_col: g.r, g_col: g.g, b_col: g.b,
+            alpha: g.alpha[i],
+            // Subtle scroll sensitivity — each blob different
+            scrollSens: (seed() * 0.3 + 0.05),
+          });
+        }
+      });
+
+      function draw() {
+        time += 0.0018; // very slow — paint moves like treacle
+        smoothScroll += (scrollVel - smoothScroll) * 0.06;
+        scrollVel *= 0.88;
+
+        ctx.clearRect(0, 0, W, H);
+
+        // ① Solid rich metallic grey base — this is the dominant colour
+        ctx.fillStyle = '#2B2E38';
+        ctx.fillRect(0, 0, W, H);
+
+        // ② Subtle dark vignette at edges to frame the paint
+        const vig = ctx.createRadialGradient(W/2, H/2, H*0.2, W/2, H/2, H*0.9);
+        vig.addColorStop(0, 'rgba(0,0,0,0)');
+        vig.addColorStop(1, 'rgba(15,17,22,0.35)');
+        ctx.fillStyle = vig;
+        ctx.fillRect(0, 0, W, H);
+
+        // ③ Draw each paint blob — organic, slow, unmixed
+        blobs.forEach(b => {
+          // Autonomous slow drift
+          b.x += b.vx + Math.sin(time * b.breatheX * 1000 + b.phase) * 0.000038;
+          b.y += b.vy + Math.cos(time * b.breatheY * 900  + b.phase) * 0.000030;
+
+          // Very gentle scroll nudge — horizontal only, barely perceptible
+          const scrollNudge = smoothScroll * b.scrollSens * 0.0008;
+
+          // Soft bounce at edges
+          if (b.x < -0.15) b.vx += 0.000015;
+          if (b.x >  1.15) b.vx -= 0.000015;
+          if (b.y < -0.15) b.vy += 0.000012;
+          if (b.y >  1.15) b.vy -= 0.000012;
+
+          // Centre of blob — slow organic warp
+          const cx = (b.x + Math.sin(time * 0.38 + b.wx) * 0.04 + scrollNudge) * W;
+          const cy = (b.y + Math.cos(time * 0.29 + b.wy) * 0.035) * H;
+
+          // Blob is wider than tall — like paint spreading on a surface
+          const rx = b.r * W * (1 + Math.sin(time * 0.55 + b.phase) * 0.07);
+          const ry = b.r * H * (0.55 + Math.cos(time * 0.47 + b.phase) * 0.07);
+
+          // Radial gradient — soft feathered edge like real paint
+          const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(rx, ry));
+          grad.addColorStop(0,    `rgba(${b.r_col},${b.g_col},${b.b_col},${b.alpha})`);
+          grad.addColorStop(0.35, `rgba(${b.r_col},${b.g_col},${b.b_col},${b.alpha * 0.65})`);
+          grad.addColorStop(0.70, `rgba(${b.r_col},${b.g_col},${b.b_col},${b.alpha * 0.25})`);
+          grad.addColorStop(1,    `rgba(${b.r_col},${b.g_col},${b.b_col},0)`);
+
+          ctx.save();
+          ctx.translate(cx, cy);
+          ctx.scale(1, ry / Math.max(rx, 1));
+          ctx.beginPath();
+          ctx.arc(0, 0, rx, 0, Math.PI * 2);
+          ctx.fillStyle = grad;
+          ctx.fill();
+          ctx.restore();
+        });
+
+        // ④ One thin copper streak that slowly rotates — like a stirring mark
+        {
+          const angle = time * 0.08;
+          const cx = W * (0.5 + Math.sin(time * 0.11) * 0.18);
+          const cy = H * (0.5 + Math.cos(time * 0.09) * 0.15);
+          const len = Math.min(W, H) * 0.45;
+          const x1 = cx + Math.cos(angle) * len;
+          const y1 = cy + Math.sin(angle) * len;
+          const x2 = cx - Math.cos(angle) * len;
+          const y2 = cy - Math.sin(angle) * len;
+
+          const streakGrad = ctx.createLinearGradient(x1, y1, x2, y2);
+          streakGrad.addColorStop(0,   'rgba(184,115,51,0)');
+          streakGrad.addColorStop(0.25,'rgba(184,115,51,0.07)');
+          streakGrad.addColorStop(0.5, 'rgba(212,140,80,0.10)');
+          streakGrad.addColorStop(0.75,'rgba(184,115,51,0.07)');
+          streakGrad.addColorStop(1,   'rgba(184,115,51,0)');
+
+          ctx.save();
+          ctx.strokeStyle = streakGrad;
+          ctx.lineWidth = Math.min(W, H) * 0.09;
+          ctx.lineCap = 'round';
+          ctx.globalAlpha = 1;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // ⑤ One silver sheen arc — gives that metallic feel
+        {
+          const arc_cx = W * (0.5 + Math.sin(time * 0.07 + 1.2) * 0.22);
+          const arc_cy = H * (0.5 + Math.cos(time * 0.06 + 0.8) * 0.18);
+          const arc_r  = Math.min(W, H) * (0.35 + Math.sin(time * 0.04) * 0.05);
+
+          const sheenG = ctx.createRadialGradient(arc_cx, arc_cy, arc_r * 0.6, arc_cx, arc_cy, arc_r);
+          sheenG.addColorStop(0,   'rgba(210,216,228,0)');
+          sheenG.addColorStop(0.5, 'rgba(210,216,228,0.055)');
+          sheenG.addColorStop(0.8, 'rgba(192,198,212,0.04)');
+          sheenG.addColorStop(1,   'rgba(192,198,212,0)');
+          ctx.beginPath();
+          ctx.arc(arc_cx, arc_cy, arc_r, 0, Math.PI * 2);
+          ctx.fillStyle = sheenG;
+          ctx.fill();
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      requestAnimationFrame(draw);
+    })();
+
+
+    /* ════════════════════════════════════════
+       SCROLL REVEAL — IntersectionObserver
+    ════════════════════════════════════════ */
+    const revealObs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('in-view');
+        }
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    function initReveal() {
+      document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => {
+        revealObs.observe(el);
+      });
+    }
+    initReveal();
+
+
+    /* ════════════════════════════════════════
+       ROOM DATA (with Firebase image slots)
+    ════════════════════════════════════════ */
+    const ROOMS_DATA = [
+      { id: 'spur-tree-suite',    name: 'Spur Tree Suite',     badge: 'Signature',      description: 'Our most spacious offering with a private balcony overlooking the Manchester hills. King-sized bed, rainfall shower, and handcrafted mahogany furnishings throughout.', price: 185, slot: 'room_spur_tree_suite',    fallback: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?w=800&q=85&auto=format' },
+      { id: 'mandeville-retreat', name: 'Mandeville Retreat',  badge: 'Popular',        description: 'A serene queen-bedded room with floor-to-ceiling windows framing the garden courtyard. Ideal for couples seeking a peaceful mountain escape.', price: 145, slot: 'room_mandeville_retreat', fallback: 'https://images.unsplash.com/photo-1590490360182-c33d955e5bbf?w=800&q=85&auto=format' },
+      { id: 'hilltop-haven',      name: 'Hilltop Haven',       badge: 'Panoramic View', description: "Wake to 180-degree views of Jamaica's Blue Mountains. A luxe king room with a writing desk, artisan minibar, and deep soaking tub.", price: 165, slot: 'room_hilltop_haven',      fallback: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=85&auto=format' },
+      { id: 'garden-cottage',     name: 'Garden Cottage',      badge: 'Intimate',       description: 'A standalone cottage nestled among tropical blooms. Features a private patio, outdoor shower, and hand-woven Jamaican textiles.', price: 210, slot: 'room_garden_cottage',      fallback: 'https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=800&q=85&auto=format' }
     ];
 
     const AMENITIES = [
-      { label: 'Free Wi-Fi', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>' },
-      { label: 'Smart TV', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
-      { label: 'Hot Water', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2c-5.33 4-8 7.33-8 10a8 8 0 0016 0c0-2.67-2.67-6-8-10z"/></svg>' },
+      { label: 'Free Wi-Fi',    icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>' },
+      { label: 'Smart TV',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+      { label: 'Hot Water',     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2c-5.33 4-8 7.33-8 10a8 8 0 0016 0c0-2.67-2.67-6-8-10z"/></svg>' },
       { label: '24hr Security', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
-      { label: 'Breakfast', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>' }
+      { label: 'Breakfast',     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>' }
     ];
 
-    /* CALENDAR */
+    /* Calendar */
     function generateCalendar(year, month) {
       const dayLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'];
       const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
       const today = new Date();
-
       let html = dayLabels.map(d => `<div class="calendar-day-label">${d}</div>`).join('');
-
-      for (let i = 0; i < firstDay; i++) {
-        html += '<div class="calendar-day empty"></div>';
-      }
-
+      for (let i = 0; i < firstDay; i++) html += '<div class="calendar-day empty"></div>';
       for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(year, month, day);
         const isPast = date < new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const isBooked = !isPast && Math.random() < 0.15;
-
-        let cls = 'calendar-day';
-        if (isPast) cls += ' booked';
-        else if (isBooked) cls += ' booked';
-        else cls += ' available';
-
+        let cls = 'calendar-day' + (isPast || isBooked ? ' booked' : ' available');
         html += `<div class="${cls}">${day}</div>`;
       }
-
       return html;
     }
+    function getMonthName(m) { return ['January','February','March','April','May','June','July','August','September','October','November','December'][m]; }
 
-    function getMonthName(month) {
-      return ['January','February','March','April','May','June','July','August','September','October','November','December'][month];
-    }
-
-    /* RENDER ROOMS */
+    /* Render Rooms */
     function renderRooms() {
       const grid = document.getElementById('roomsGrid');
       if (!grid) return;
-
       const now = new Date();
-      let currentMonth = now.getMonth();
-      let currentYear = now.getFullYear();
+      let currentMonth = now.getMonth(), currentYear = now.getFullYear();
+      const siteImages = window._siteImages || {};
 
-      grid.innerHTML = ROOMS_DATA.map((room, idx) => {
-        const amenitiesHtml = AMENITIES.map(a =>
-          `<div class="amenity">${a.icon}<span>${a.label}</span></div>`
-        ).join('');
-
-        const calId = `cal-${room.id}`;
-        const calTitleId = `cal-title-${room.id}`;
-
+      grid.innerHTML = ROOMS_DATA.map(room => {
+        const imgSrc = siteImages[room.slot] || room.fallback;
+        const amenitiesHtml = AMENITIES.map(a => `<div class="amenity">${a.icon}<span>${a.label}</span></div>`).join('');
+        const calId = `cal-${room.id}`, calTitleId = `cal-title-${room.id}`;
         return `
-          <div class="room-card">
+          <div class="room-card reveal">
             <div class="room-card-image">
-              <img src="${room.image}" alt="${room.name} at Swaby's Hope Hideaway" loading="lazy" />
+              <img src="${imgSrc}" alt="${room.name} at Swaby's Hope Hideaway" loading="lazy" />
               <div class="room-card-badge">${room.badge}</div>
             </div>
             <div class="room-card-body">
               <div class="room-card-header">
                 <h3 class="room-card-name">${room.name}</h3>
-                <div class="room-card-price">
-                  <span class="price">$${room.price}</span>
-                  <span class="per-night">/ night</span>
-                </div>
+                <div class="room-card-price"><span class="price">$${room.price}</span><span class="per-night"> / night</span></div>
               </div>
               <p class="room-card-desc">${room.description}</p>
               <div class="room-amenities">${amenitiesHtml}</div>
@@ -2323,159 +1497,110 @@
                 <div class="room-calendar-header">
                   <span class="room-calendar-title" id="${calTitleId}">${getMonthName(currentMonth)} ${currentYear}</span>
                   <div class="room-calendar-nav">
-                    <button onclick="changeCalMonth('${room.id}', -1)" aria-label="Previous month">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
-                    </button>
-                    <button onclick="changeCalMonth('${room.id}', 1)" aria-label="Next month">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                    </button>
+                    <button onclick="changeCalMonth('${room.id}', -1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+                    <button onclick="changeCalMonth('${room.id}', 1)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
                   </div>
                 </div>
-                <div class="calendar-grid" id="${calId}">
-                  ${generateCalendar(currentYear, currentMonth)}
-                </div>
+                <div class="calendar-grid" id="${calId}">${generateCalendar(currentYear, currentMonth)}</div>
               </div>
               <div class="room-card-actions">
-                <button class="btn-primary" onclick="handleBookRoom('${room.id}')">
-                  Book Now
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-                </button>
+                <button class="btn-primary" onclick="handleBookRoom('${room.id}')">Book Now <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button>
               </div>
             </div>
-          </div>
-        `;
+          </div>`;
       }).join('');
 
       window._calState = {};
-      ROOMS_DATA.forEach(r => {
-        window._calState[r.id] = { month: currentMonth, year: currentYear };
-      });
+      ROOMS_DATA.forEach(r => { window._calState[r.id] = { month: currentMonth, year: currentYear }; });
+
+      // Observe newly added reveal elements
+      document.querySelectorAll('#roomsGrid .reveal').forEach(el => revealObs.observe(el));
     }
 
     function changeCalMonth(roomId, delta) {
-      const state = window._calState[roomId];
-      state.month += delta;
-      if (state.month > 11) { state.month = 0; state.year++; }
-      if (state.month < 0) { state.month = 11; state.year--; }
-
+      const s = window._calState[roomId];
+      s.month += delta;
+      if (s.month > 11) { s.month = 0; s.year++; }
+      if (s.month < 0)  { s.month = 11; s.year--; }
       const calEl = document.getElementById(`cal-${roomId}`);
       const titleEl = document.getElementById(`cal-title-${roomId}`);
-      if (calEl) calEl.innerHTML = generateCalendar(state.year, state.month);
-      if (titleEl) titleEl.textContent = `${getMonthName(state.month)} ${state.year}`;
+      if (calEl) calEl.innerHTML = generateCalendar(s.year, s.month);
+      if (titleEl) titleEl.textContent = `${getMonthName(s.month)} ${s.year}`;
     }
 
 
-    /* NAVIGATION */
+    /* ════════════════════════════════════════
+       NAVIGATION
+    ════════════════════════════════════════ */
     function navigateTo(page) {
       document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
       const target = document.getElementById(`page-${page}`);
       if (target) target.classList.add('active');
-
-      document.querySelectorAll('.nav-link[data-page]').forEach(link => {
-        link.classList.toggle('active', link.dataset.page === page);
-      });
-
+      document.querySelectorAll('.nav-link[data-page]').forEach(link => link.classList.toggle('active', link.dataset.page === page));
       window.scrollTo({ top: 0, behavior: 'smooth' });
-
-      if (page === 'rooms' && !window._roomsRendered) {
-        renderRooms();
-        window._roomsRendered = true;
-      }
+      if (page === 'rooms' && !window._roomsRendered) { renderRooms(); window._roomsRendered = true; }
+      // Re-init reveal for newly shown page
+      setTimeout(initReveal, 100);
     }
 
-
-    /* NAV SCROLL */
     window.addEventListener('scroll', () => {
-      const nav = document.getElementById('mainNav');
-      nav.classList.toggle('scrolled', window.scrollY > 60);
+      document.getElementById('mainNav').classList.toggle('scrolled', window.scrollY > 60);
     });
 
-
-    /* MOBILE MENU */
     function toggleMobileMenu() {
       const menu = document.getElementById('mobileMenu');
       const backdrop = document.getElementById('mobileBackdrop');
       const toggle = document.getElementById('navToggle');
       const isOpen = menu.classList.contains('open');
-
       if (isOpen) {
         menu.style.transform = 'translateX(100%)';
-        backdrop.classList.remove('open');
-        toggle.classList.remove('open');
+        backdrop.classList.remove('open'); toggle.classList.remove('open');
         document.body.style.overflow = '';
-        setTimeout(() => { menu.classList.remove('open'); }, 400);
+        setTimeout(() => menu.classList.remove('open'), 400);
       } else {
-        menu.classList.add('open');
-        backdrop.classList.add('open');
-        toggle.classList.add('open');
+        menu.classList.add('open'); backdrop.classList.add('open'); toggle.classList.add('open');
         document.body.style.overflow = 'hidden';
         requestAnimationFrame(() => { menu.style.transform = 'translateX(0)'; });
       }
     }
 
+    function scrollToBooking() { navigateTo('rooms'); }
 
-    /* BOOKING & FORM HANDLERS */
-    function scrollToBooking() {
-      navigateTo('rooms');
-    }
 
+    /* ════════════════════════════════════════
+       BOOKING MODAL
+    ════════════════════════════════════════ */
     async function handleBookRoom(roomId) {
       const room = ROOMS_DATA.find(r => r.id === roomId);
       if (!room) return;
-
       let overlay = document.getElementById('bookingOverlay');
       if (overlay) overlay.remove();
-
       overlay = document.createElement('div');
       overlay.id = 'bookingOverlay';
-      overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(3,3,3,0.7);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem;animation:fadeIn .3s ease;';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:2000;background:rgba(20,22,28,0.75);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:center;padding:1rem;animation:pageIn .3s ease;';
       overlay.innerHTML = `
-        <div style="background:var(--dark-card);border:1px solid rgba(255,140,50,0.15);border-radius:var(--radius-xl);max-width:480px;width:100%;padding:var(--space-2xl);box-shadow:var(--shadow-xl),0 0 30px rgba(255,140,50,0.1);position:relative;">
-          <button onclick="document.getElementById('bookingOverlay').remove()" style="position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,140,50,0.15);display:flex;align-items:center;justify-content:center;color:#94A3B8;background:rgba(3,3,3,0.5);cursor:pointer;font-size:18px;" aria-label="Close">&times;</button>
-          <div style="margin-bottom:var(--space-lg);">
+        <div style="background:linear-gradient(145deg,#222530,#2A2D38);border:1px solid rgba(184,115,51,0.2);border-radius:16px;max-width:480px;width:100%;padding:2rem;box-shadow:0 28px 72px rgba(0,0,0,0.5),0 0 30px rgba(184,115,51,0.1);position:relative;">
+          <button onclick="document.getElementById('bookingOverlay').remove()" style="position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;border:1px solid rgba(184,115,51,0.2);display:flex;align-items:center;justify-content:center;color:#8A919E;background:rgba(20,22,28,0.6);cursor:pointer;font-size:18px;">&times;</button>
+          <div style="margin-bottom:1.5rem;">
             <div class="section-eyebrow">Reserve</div>
-            <h3 style="font-family:var(--font-display);font-size:var(--text-2xl);font-weight:500;color:var(--white);">${room.name}</h3>
-            <p style="color:#64748B;font-size:var(--text-sm);margin-top:4px;">$${room.price} per night</p>
+            <h3 style="font-family:var(--font-display);font-size:var(--text-2xl);font-weight:500;color:var(--lux-pearl);">${room.name}</h3>
+            <p style="color:var(--grey-silver);font-size:var(--text-sm);margin-top:4px;">$${room.price} per night</p>
           </div>
-          <div class="form-group">
-            <label class="form-label">Full Name <span class="required">*</span></label>
-            <input type="text" class="form-input" id="bookName" placeholder="Your name" />
+          <div class="form-group"><label class="form-label">Full Name <span class="required">*</span></label><input type="text" class="form-input" id="bookName" placeholder="Your name" /></div>
+          <div class="form-group"><label class="form-label">Email <span class="required">*</span></label><input type="email" class="form-input" id="bookEmail" placeholder="you@email.com" /></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group"><label class="form-label">Check-in <span class="required">*</span></label><input type="date" class="form-input" id="bookCheckin" /></div>
+            <div class="form-group"><label class="form-label">Check-out <span class="required">*</span></label><input type="date" class="form-input" id="bookCheckout" /></div>
           </div>
-          <div class="form-group">
-            <label class="form-label">Email <span class="required">*</span></label>
-            <input type="email" class="form-input" id="bookEmail" placeholder="you@email.com" />
-          </div>
-          <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-md);">
-            <div class="form-group">
-              <label class="form-label">Check-in <span class="required">*</span></label>
-              <input type="date" class="form-input" id="bookCheckin" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Check-out <span class="required">*</span></label>
-              <input type="date" class="form-input" id="bookCheckout" />
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Number of Guests</label>
-            <select class="form-select" id="bookGuests">
-              <option value="1">1 Guest</option>
-              <option value="2" selected>2 Guests</option>
-              <option value="3">3 Guests</option>
-              <option value="4">4 Guests</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Special Requests</label>
-            <textarea class="form-textarea" id="bookRequests" placeholder="Early check-in, extra pillows, dietary needs..." style="min-height:80px;"></textarea>
-          </div>
-          <button class="btn-primary form-submit" id="bookSubmitBtn" onclick="submitBooking('${room.id}')">
+          <div class="form-group"><label class="form-label">Number of Guests</label><select class="form-select" id="bookGuests"><option value="1">1 Guest</option><option value="2" selected>2 Guests</option><option value="3">3 Guests</option><option value="4">4 Guests</option></select></div>
+          <div class="form-group"><label class="form-label">Special Requests</label><textarea class="form-textarea" id="bookRequests" placeholder="Early check-in, extra pillows..." style="min-height:80px;"></textarea></div>
+          <button class="btn-hero-solid" id="bookSubmitBtn" onclick="submitBooking('${room.id}')" style="width:100%;justify-content:center;">
             Confirm Reservation
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </button>
-        </div>
-      `;
+        </div>`;
       document.body.appendChild(overlay);
-      overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+      overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
     }
 
     async function submitBooking(roomId) {
@@ -2485,52 +1610,22 @@
       const checkout = document.getElementById('bookCheckout').value;
       const guests = document.getElementById('bookGuests').value;
       const requests = document.getElementById('bookRequests').value.trim();
-
-      if (!name || !email || !checkin || !checkout) {
-        alert('Please fill in your name, email, check-in and check-out dates.');
-        return;
-      }
-
+      if (!name || !email || !checkin || !checkout) { alert('Please fill in your name, email, check-in and check-out dates.'); return; }
       const btn = document.getElementById('bookSubmitBtn');
-      btn.disabled = true;
-      btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31 31"/></svg> Submitting...</span>';
-
+      btn.disabled = true; btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31 31"/></svg> Submitting...</span>';
       try {
         const { db, collection, addDoc, serverTimestamp } = window._fb;
-        await addDoc(collection(db, 'bookings'), {
-          roomId,
-          guestName: name,
-          guestEmail: email,
-          checkIn: checkin,
-          checkOut: checkout,
-          numberOfGuests: parseInt(guests),
-          specialRequests: requests,
-          status: 'pending',
-          userId: window._firebaseUser?.uid || null,
-          createdAt: serverTimestamp()
-        });
-
-        btn.closest('div[style*="background:var(--dark-card)"]').innerHTML = `
-          <div style="text-align:center;padding:var(--space-2xl) 0;">
-            <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,140,50,0.08);border:1px solid rgba(255,140,50,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-lg);">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF8C32" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <h3 style="font-family:var(--font-display);font-size:var(--text-2xl);font-weight:500;margin-bottom:var(--space-sm);color:var(--white);">Reservation Received!</h3>
-            <p style="color:#78859A;margin-bottom:var(--space-lg);line-height:1.7;">Thank you, ${name}. We've received your booking request and will confirm availability to <strong style="color:#94A3B8;">${email}</strong> within 24 hours.</p>
-            <button class="btn-primary" onclick="document.getElementById('bookingOverlay').remove()" style="margin:0 auto;">
-              Done
-            </button>
-          </div>
-        `;
-      } catch (error) {
-        console.error('Booking error:', error);
-        btn.disabled = false;
-        btn.innerHTML = 'Confirm Reservation <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
-        alert('Something went wrong submitting your reservation. Please try again or contact us directly.');
+        await addDoc(collection(db, 'bookings'), { roomId, guestName: name, guestEmail: email, checkIn: checkin, checkOut: checkout, numberOfGuests: parseInt(guests), specialRequests: requests, status: 'pending', userId: window._firebaseUser?.uid || null, createdAt: serverTimestamp() });
+        btn.closest('div[style*="background:linear-gradient"]').innerHTML = `<div style="text-align:center;padding:2rem 0;"><div style="width:64px;height:64px;border-radius:50%;background:rgba(184,115,51,0.08);border:1px solid rgba(184,115,51,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B87333" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div><h3 style="font-family:var(--font-display);font-size:var(--text-2xl);font-weight:500;margin-bottom:0.5rem;color:var(--lux-pearl);">Reservation Received!</h3><p style="color:var(--grey-silver);margin-bottom:1.5rem;line-height:1.7;">Thank you, ${name}. We'll confirm availability to <strong style="color:var(--grey-pearl);">${email}</strong> within 24 hours.</p><button class="btn-hero-solid" onclick="document.getElementById('bookingOverlay').remove()" style="margin:0 auto;">Done</button></div>`;
+      } catch(err) {
+        console.error(err); btn.disabled = false; btn.textContent = 'Confirm Reservation';
+        alert('Something went wrong. Please try again.');
       }
     }
 
-    /* Event Inquiry Form */
+    /* ════════════════════════════════════════
+       EVENT INQUIRY FORM
+    ════════════════════════════════════════ */
     async function handleFormSubmit() {
       const name = document.getElementById('formName').value.trim();
       const email = document.getElementById('formEmail').value.trim();
@@ -2539,50 +1634,19 @@
       const date = document.getElementById('formDate').value;
       const phone = document.getElementById('formPhone').value.trim();
       const requests = document.getElementById('formRequests').value.trim();
-
-      if (!name || !email || !eventType || !guests) {
-        alert('Please fill in all required fields.');
-        return;
-      }
-
+      if (!name || !email || !eventType || !guests) { alert('Please fill in all required fields.'); return; }
       const btn = document.querySelector('.form-submit');
-      btn.disabled = true;
-      btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31 31"/></svg> Submitting...</span>';
-
+      btn.disabled = true; btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px;"><svg width="16" height="16" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31 31"/></svg> Submitting...</span>';
       try {
         const { db, collection, addDoc, serverTimestamp } = window._fb;
-        await addDoc(collection(db, 'event_inquiries'), {
-          name,
-          email,
-          eventType,
-          estimatedGuests: parseInt(guests),
-          preferredDate: date || null,
-          phone: phone || null,
-          specialRequests: requests || null,
-          status: 'new',
-          userId: window._firebaseUser?.uid || null,
-          createdAt: serverTimestamp()
-        });
-
-        document.getElementById('inquiryForm').innerHTML = `
-          <div style="text-align:center;padding:var(--space-2xl) 0;">
-            <div style="width:64px;height:64px;border-radius:50%;background:rgba(255,140,50,0.08);border:1px solid rgba(255,140,50,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto var(--space-lg);">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#FF8C32" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <h3 style="font-family:var(--font-display);font-size:var(--text-2xl);font-weight:500;margin-bottom:var(--space-sm);color:var(--white);">Inquiry Sent!</h3>
-            <p style="color:#78859A;line-height:1.7;">Thank you, ${name}. Our events team will be in touch at <strong style="color:#94A3B8;">${email}</strong> within 24 hours to discuss your ${eventType} celebration.</p>
-          </div>
-        `;
-      } catch (error) {
-        console.error('Inquiry submission error:', error);
-        btn.disabled = false;
-        btn.innerHTML = 'Submit Inquiry <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
-        alert('Something went wrong. Please try again or email us directly at events@swabyshopehotel.com');
+        await addDoc(collection(db, 'event_inquiries'), { name, email, eventType, estimatedGuests: parseInt(guests), preferredDate: date || null, phone: phone || null, specialRequests: requests || null, status: 'new', userId: window._firebaseUser?.uid || null, createdAt: serverTimestamp() });
+        document.getElementById('inquiryForm').innerHTML = `<div style="text-align:center;padding:2rem 0;"><div style="width:64px;height:64px;border-radius:50%;background:rgba(184,115,51,0.08);border:1px solid rgba(184,115,51,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B87333" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></div><h3 style="font-family:var(--font-display);font-size:var(--text-2xl);font-weight:500;margin-bottom:0.5rem;color:var(--lux-pearl);">Inquiry Sent!</h3><p style="color:var(--grey-silver);line-height:1.7;">Thank you, ${name}. Our events team will be in touch at <strong style="color:var(--grey-pearl);">${email}</strong> within 24 hours.</p></div>`;
+      } catch(err) {
+        console.error(err); btn.disabled = false; btn.innerHTML = 'Submit Inquiry <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+        alert('Something went wrong. Please try again or email us directly.');
       }
     }
 
-
-    /* INIT */
     document.addEventListener('DOMContentLoaded', () => {
       window.dispatchEvent(new Event('scroll'));
     });

@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Swaby's Hope Hideaway — Admin Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <script type="module">
+    import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js';
+    import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc, query, orderBy, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js';
+    import { getStorage, ref, uploadBytesResumable, getDownloadURL, deleteObject } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-storage.js';
+    import { getAuth, signInWithEmailAndPassword, signInAnonymously, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-auth.js';
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCxRadGAXnaBOfUHABUPIgG3_XUyH0a1vs",
+      authDomain: "swabys-hope-hideaway.firebaseapp.com",
+      projectId: "swabys-hope-hideaway",
+      storageBucket: "swabys-hope-hideaway.firebasestorage.app",
+      messagingSenderId: "183455042448",
+      appId: "1:183455042448:web:cf2bed23dcb20e578ac115"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+    const auth = getAuth(app);
+
+    window._fb = { db, storage, auth, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, setDoc, query, orderBy, serverTimestamp, ref, uploadBytesResumable, getDownloadURL, deleteObject, signInWithEmailAndPassword, signInAnonymously, signOut };
+
+    // Auto sign in anonymously — open access dashboard
+    signInAnonymously(auth).catch(e => {
+      // Even if anon auth fails, show dashboard
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('dashboardScreen').style.display = 'flex';
+      document.getElementById('adminEmail').textContent = 'Admin';
+      if (typeof loadAllData === 'function') loadAllData();
+    });
+
+    // Auto-login anonymously — dashboard is open access
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window._adminUser = user;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('dashboardScreen').style.display = 'flex';
+        document.getElementById('adminEmail').textContent = user.email || 'Admin';
+        loadAllData();
+      }
+    });
+  </script>
+
+  <style>
+    :root {
+      --copper:        #B87333;
+      --copper-shine:  #D4895A;
+      --copper-light:  #E8A87C;
+      --copper-wire:   0 0 8px rgba(184,115,51,0.5);
+      --grey-base:     #2A2D35;
+      --grey-mid:      #363A45;
+      --grey-surface:  #3E4352;
+      --grey-light:    #4A5060;
+      --grey-silver:   #8A919E;
+      --grey-pearl:    #B8BEC8;
+      --grey-mist:     #D0D5DE;
+      --lux-white:     #FAF8F5;
+      --lux-cream:     #F5F0EA;
+      --font-display:  'Playfair Display', Georgia, serif;
+      --font-body:     'DM Sans', system-ui, sans-serif;
+      --radius-sm: 4px; --radius-md: 8px; --radius-lg: 12px; --radius-xl: 16px;
+      --space-xs: 0.25rem; --space-sm: 0.5rem; --space-md: 1rem; --space-lg: 1.5rem; --space-xl: 2rem; --space-2xl: 3rem;
+    }
+    *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    html { -webkit-font-smoothing: antialiased; }
+    body { font-family: var(--font-body); background: var(--grey-base); color: var(--grey-mist); min-height: 100vh; }
+    button { font: inherit; cursor: pointer; border: none; background: none; }
+    input, textarea, select { font: inherit; }
+
+    /* ── LOGIN ── */
+    #loginScreen {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(145deg, #1E2028, #2A2D38, #1E2028);
+      position: relative; overflow: hidden;
+    }
+    #loginScreen::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 30% 40%, rgba(184,115,51,0.08) 0%, transparent 60%);
+    }
+    .login-card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(184,115,51,0.2);
+      border-radius: var(--radius-xl); padding: 3rem 2.5rem; width: 100%; max-width: 420px;
+      box-shadow: 0 28px 72px rgba(0,0,0,0.5), 0 0 30px rgba(184,115,51,0.08);
+      position: relative; z-index: 1;
+    }
+    .login-logo { font-family: var(--font-display); font-size: 1.5rem; font-weight: 500; color: var(--lux-white); margin-bottom: 0.25rem; }
+    .login-sub { font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--copper-shine); margin-bottom: 2rem; opacity: 0.8; }
+    .login-title { font-size: 1.1rem; font-weight: 500; color: var(--grey-pearl); margin-bottom: 1.5rem; }
+    .login-field { margin-bottom: 1.25rem; }
+    .login-field label { display: block; font-size: 0.8rem; font-weight: 500; color: var(--grey-silver); margin-bottom: 0.4rem; letter-spacing: 0.06em; text-transform: uppercase; }
+    .login-field input { width: 100%; padding: 12px 16px; background: rgba(0,0,0,0.3); border: 1px solid rgba(184,115,51,0.15); border-radius: var(--radius-md); color: var(--lux-white); font-size: 0.9rem; outline: none; transition: border-color 0.3s, box-shadow 0.3s; }
+    .login-field input:focus { border-color: var(--copper); box-shadow: 0 0 12px rgba(184,115,51,0.2); }
+    .btn-login {
+      width: 100%; padding: 14px;
+      background: linear-gradient(135deg, var(--copper-shine), var(--copper), #8B4513);
+      color: var(--lux-white); font-weight: 700; font-size: 0.875rem; letter-spacing: 0.08em; text-transform: uppercase;
+      border-radius: var(--radius-sm); border: 1px solid var(--copper-light);
+      box-shadow: 0 4px 20px rgba(184,115,51,0.4); transition: all 0.3s; margin-top: 0.5rem;
+    }
+    .btn-login:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(184,115,51,0.5); }
+    .login-err { color: #f87171; font-size: 0.8rem; margin-top: 0.75rem; display: none; }
+
+    /* ── DASHBOARD LAYOUT ── */
+    #dashboardScreen { display: flex; flex-direction: row; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px; min-height: 100vh; flex-shrink: 0;
+      background: linear-gradient(180deg, #1E2028 0%, #222530 100%);
+      border-right: 1px solid rgba(184,115,51,0.12);
+      display: flex; flex-direction: column; padding: 0;
+      position: sticky; top: 0; height: 100vh;
+    }
+    .sidebar-brand { padding: 1.75rem 1.5rem 1.5rem; border-bottom: 1px solid rgba(184,115,51,0.1); }
+    .sidebar-brand-name { font-family: var(--font-display); font-size: 1.1rem; font-weight: 500; color: var(--lux-white); }
+    .sidebar-brand-sub { font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--copper-shine); opacity: 0.8; }
+    .sidebar-badge { display: inline-block; background: rgba(184,115,51,0.12); border: 1px solid rgba(184,115,51,0.2); color: var(--copper-shine); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
+    .sidebar-nav { flex: 1; padding: 1rem 0; overflow-y: auto; }
+    .sidebar-section { padding: 0 0.75rem; margin-bottom: 1.5rem; }
+    .sidebar-section-title { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--grey-light); margin-bottom: 0.5rem; padding: 0 0.75rem; }
+    .sidebar-item {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.65rem 0.75rem; border-radius: var(--radius-md);
+      color: var(--grey-silver); font-size: 0.875rem; font-weight: 500;
+      cursor: pointer; transition: all 0.2s; margin-bottom: 2px;
+    }
+    .sidebar-item:hover { background: rgba(184,115,51,0.08); color: var(--grey-pearl); }
+    .sidebar-item.active { background: rgba(184,115,51,0.12); color: var(--copper-shine); border-left: 2px solid var(--copper); }
+    .sidebar-item svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .sidebar-item .badge-count { margin-left: auto; background: var(--copper); color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+    .sidebar-footer { padding: 1rem 1.25rem; border-top: 1px solid rgba(184,115,51,0.1); }
+    .sidebar-user { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .sidebar-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--copper-shine), var(--copper)); display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; font-size: 0.875rem; }
+    .sidebar-user-info { flex: 1; min-width: 0; }
+    .sidebar-user-name { font-size: 0.8rem; font-weight: 600; color: var(--grey-pearl); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sidebar-user-role { font-size: 0.7rem; color: var(--grey-silver); }
+    .btn-logout { width: 100%; padding: 8px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); border-radius: var(--radius-md); color: #f87171; font-size: 0.8rem; font-weight: 500; transition: all 0.2s; }
+    .btn-logout:hover { background: rgba(239,68,68,0.15); }
+
+    /* Main Content */
+    .main { flex: 1; overflow-y: auto; background: #252830; }
+    .main-header { padding: 1.75rem 2rem 1.25rem; border-bottom: 1px solid rgba(184,115,51,0.08); display: flex; align-items: center; justify-content: space-between; background: linear-gradient(180deg, #222530, transparent); }
+    .main-header h1 { font-family: var(--font-display); font-size: 1.5rem; font-weight: 400; color: var(--lux-white); }
+    .main-header p { font-size: 0.85rem; color: var(--grey-silver); margin-top: 2px; }
+    .header-actions { display: flex; gap: 0.75rem; }
+    .main-content { padding: 2rem; }
+
+    /* Panels */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Cards */
+    .card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(184,115,51,0.1);
+      border-radius: var(--radius-lg); padding: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .card-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 500; color: var(--lux-white); margin-bottom: 0.25rem; }
+    .card-sub { font-size: 0.8rem; color: var(--grey-silver); margin-bottom: 1.25rem; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+    .stat-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(184,115,51,0.1); border-radius: var(--radius-lg); padding: 1.25rem; }
+    .stat-card:hover { border-color: rgba(184,115,51,0.25); }
+    .stat-icon { width: 40px; height: 40px; background: rgba(184,115,51,0.08); border: 1px solid rgba(184,115,51,0.15); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; margin-bottom: 0.75rem; }
+    .stat-icon svg { width: 20px; height: 20px; color: var(--copper-shine); }
+    .stat-value { font-family: var(--font-display); font-size: 1.75rem; font-weight: 500; color: var(--lux-white); line-height: 1; margin-bottom: 4px; }
+    .stat-label { font-size: 0.75rem; color: var(--grey-silver); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ── IMAGE UPLOAD SECTION ── */
+    .image-slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.25rem; }
+    .image-slot {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(184,115,51,0.12);
+      border-radius: var(--radius-lg); overflow: hidden; transition: border-color 0.2s;
+    }
+    .image-slot:hover { border-color: rgba(184,115,51,0.25); }
+    .image-slot-preview {
+      aspect-ratio: 16/10; background: linear-gradient(135deg, #1E2028, #252830);
+      display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+    }
+    .image-slot-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
+    .image-slot-preview img.loaded { display: block; }
+    .image-slot-placeholder {
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      color: var(--grey-light); font-size: 0.8rem; text-align: center; padding: 1rem;
+    }
+    .image-slot-placeholder svg { width: 32px; height: 32px; color: var(--grey-surface); }
+    .image-slot-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; gap: 0.75rem; }
+    .image-slot-preview:hover .image-slot-overlay { display: flex; }
+    .image-slot-body { padding: 1rem; }
+    .image-slot-name { font-weight: 600; font-size: 0.875rem; color: var(--grey-pearl); margin-bottom: 3px; }
+    .image-slot-location { font-size: 0.75rem; color: var(--grey-silver); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 4px; }
+    .image-slot-location svg { width: 12px; height: 12px; color: var(--copper); }
+    .upload-zone {
+      border: 1.5px dashed rgba(184,115,51,0.25); border-radius: var(--radius-md);
+      padding: 0.75rem; text-align: center; cursor: pointer; transition: all 0.2s;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--copper); background: rgba(184,115,51,0.05); }
+    .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .upload-zone-text { font-size: 0.75rem; color: var(--grey-silver); }
+    .upload-zone-text strong { color: var(--copper-shine); }
+    .progress-bar { height: 4px; background: rgba(184,115,51,0.1); border-radius: 2px; margin-top: 0.5rem; overflow: hidden; display: none; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, var(--copper), var(--copper-shine)); transition: width 0.2s; border-radius: 2px; }
+    .slot-status { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; display: inline-block; margin-bottom: 0.5rem; }
+    .slot-status.uploaded { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+    .slot-status.empty { background: rgba(184,115,51,0.1); color: var(--copper-shine); border: 1px solid rgba(184,115,51,0.2); }
+
+    /* ── ROOM PHOTOS ── */
+    .room-slot-section { margin-bottom: 2rem; }
+    .room-slot-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(184,115,51,0.1); }
+    .room-slot-title { font-family: var(--font-display); font-size: 1.1rem; font-weight: 500; color: var(--lux-white); }
+    .room-slot-subtitle { font-size: 0.8rem; color: var(--grey-silver); }
+    .room-photos-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .room-photo-item { position: relative; aspect-ratio: 16/10; background: #1E2028; border-radius: var(--radius-md); overflow: hidden; border: 1px solid rgba(184,115,51,0.1); }
+    .room-photo-item img { width: 100%; height: 100%; object-fit: cover; }
+    .room-photo-item .remove-btn { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; background: rgba(239,68,68,0.85); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; line-height: 1; opacity: 0; transition: opacity 0.2s; }
+    .room-photo-item:hover .remove-btn { opacity: 1; }
+    .room-add-photo { aspect-ratio: 16/10; border: 1.5px dashed rgba(184,115,51,0.25); border-radius: var(--radius-md); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s; gap: 0.5rem; position: relative; }
+    .room-add-photo:hover { border-color: var(--copper); background: rgba(184,115,51,0.04); }
+    .room-add-photo input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .room-add-photo svg { width: 28px; height: 28px; color: var(--grey-surface); }
+    .room-add-photo span { font-size: 0.75rem; color: var(--grey-light); }
+
+    /* ── TABLES ── */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--grey-silver); padding: 0.75rem 1rem; border-bottom: 1px solid rgba(184,115,51,0.1); white-space: nowrap; }
+    td { padding: 0.875rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 0.85rem; color: var(--grey-mist); }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    tr:last-child td { border-bottom: none; }
+    .status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .status-pending { background: rgba(251,191,36,0.1); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+    .status-confirmed { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+    .status-cancelled { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .status-new { background: rgba(99,102,241,0.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2); }
+    .action-btn { padding: 5px 12px; border-radius: var(--radius-sm); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; transition: all 0.2s; }
+    .action-btn.confirm { background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+    .action-btn.confirm:hover { background: rgba(34,197,94,0.2); }
+    .action-btn.cancel { background: rgba(239,68,68,0.1); color: #f87171; border: 1px solid rgba(239,68,68,0.2); }
+    .action-btn.cancel:hover { background: rgba(239,68,68,0.2); }
+
+    /* ── BUTTONS ── */
+    .btn-copper {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 10px 22px;
+      background: linear-gradient(135deg, var(--copper-shine), var(--copper), #8B4513);
+      color: var(--lux-white); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      border-radius: var(--radius-sm); border: 1px solid var(--copper-light);
+      box-shadow: 0 4px 16px rgba(184,115,51,0.35); transition: all 0.3s;
+    }
+    .btn-copper:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(184,115,51,0.45); }
+    .btn-outline { display: inline-flex; align-items: center; gap: 0.5rem; padding: 8px 18px; background: transparent; color: var(--copper-shine); font-size: 0.8rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; border-radius: var(--radius-sm); border: 1px solid rgba(184,115,51,0.3); transition: all 0.3s; }
+    .btn-outline:hover { background: rgba(184,115,51,0.08); border-color: var(--copper); }
+
+    /* ── TOAST ── */
+    #toast { position: fixed; bottom: 2rem; right: 2rem; z-index: 9999; padding: 1rem 1.5rem; background: linear-gradient(135deg, #222530, #2A2D38); border: 1px solid rgba(184,115,51,0.3); border-radius: var(--radius-lg); color: var(--grey-mist); font-size: 0.875rem; box-shadow: 0 16px 48px rgba(0,0,0,0.4); display: none; align-items: center; gap: 0.75rem; max-width: 320px; }
+    #toast.success { border-color: rgba(34,197,94,0.3); }
+    #toast.error { border-color: rgba(239,68,68,0.3); }
+    #toast svg { flex-shrink: 0; width: 20px; height: 20px; }
+    #toast.success svg { color: #4ade80; }
+    #toast.error svg { color: #f87171; }
+
+    /* Loading */
+    .loading { display: flex; align-items: center; justify-content: center; padding: 3rem; flex-direction: column; gap: 1rem; color: var(--grey-silver); font-size: 0.875rem; }
+    .spinner { width: 32px; height: 32px; border: 2px solid rgba(184,115,51,0.2); border-top-color: var(--copper); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-state { text-align: center; padding: 3rem; color: var(--grey-silver); }
+    .empty-state svg { width: 48px; height: 48px; color: var(--grey-surface); margin: 0 auto 1rem; }
+
+    @media (max-width: 900px) {
+      .sidebar { width: 220px; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 650px) {
+      #dashboardScreen { flex-direction: column; }
+      .sidebar { width: 100%; min-height: auto; height: auto; position: static; }
+      .sidebar-nav { display: flex; gap: 0.25rem; padding: 0.5rem; overflow-x: auto; flex-wrap: nowrap; }
+      .sidebar-section { display: flex; gap: 0.25rem; padding: 0; margin: 0; }
+      .sidebar-section-title { display: none; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .image-slots-grid { grid-template-columns: 1fr; }
+      .room-photos-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen" style="display:none;">
+    <div class="login-card">
+      <div class="login-logo">Swaby's Hope Hideaway</div>
+      <div class="login-sub">Admin Portal</div>
+      <p class="login-title">Sign in to manage your property</p>
+      <div class="login-field">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="admin@swabyshopehotel.com" />
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter') adminLogin()" />
+      </div>
+      <p class="login-err" id="loginErr"></p>
+      <button class="btn-login" onclick="adminLogin()">Sign In to Dashboard</button>
+    </div>
+  </div>
+
+  <!-- DASHBOARD SCREEN -->
+  <div id="dashboardScreen" style="display:flex;">
+
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-name">Swaby's Hideaway</div>
+        <div class="sidebar-brand-sub">Ltd · Jamaica</div>
+        <span class="sidebar-badge">Admin Dashboard</span>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Overview</div>
+          <div class="sidebar-item active" data-panel="overview" onclick="showPanel('overview')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Overview
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Media</div>
+          <div class="sidebar-item" data-panel="images" onclick="showPanel('images')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9l4.5 4.5L12 9l4.5 4.5L21 9"/><circle cx="8" cy="7" r="1.5" fill="currentColor"/></svg>
+            Site Images
+          </div>
+          <div class="sidebar-item" data-panel="rooms" onclick="showPanel('rooms')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 7v11a2 2 0 002 2h14a2 2 0 002-2V7"/><path d="M21 10H3V7a4 4 0 014-4h10a4 4 0 014 4v3z"/></svg>
+            Room Photos
+          </div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Operations</div>
+          <div class="sidebar-item" data-panel="bookings" onclick="showPanel('bookings')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Bookings
+            <span class="badge-count" id="bookingBadge">0</span>
+          </div>
+          <div class="sidebar-item" data-panel="inquiries" onclick="showPanel('inquiries')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            Event Inquiries
+            <span class="badge-count" id="inquiryBadge">0</span>
+          </div>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar" id="adminAvatarLetter">A</div>
+          <div class="sidebar-user-info">
+            <div class="sidebar-user-name" id="adminEmail">admin@example.com</div>
+            <div class="sidebar-user-role">Administrator</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="if(confirm('Sign out?')) adminLogout()">Sign Out</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main">
+
+      <!-- ─── OVERVIEW PANEL ─── -->
+      <div class="panel active" id="panel-overview">
+        <div class="main-header">
+          <div><h1>Dashboard Overview</h1><p>Welcome back. Here's what's happening at Swaby's Hope Hideaway.</p></div>
+          <div class="header-actions">
+            <button class="btn-outline" onclick="loadAllData()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="main-content">
+          <div class="stats-row">
+            <div class="stat-card"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="stat-value" id="statBookings">—</div><div class="stat-label">Total Bookings</div></div>
+            <div class="stat-card"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 014 12a19.79 19.79 0 01-3.07-8.67A2 2 0 012.92 2h3a2 2 0 012 1.72"/></svg></div><div class="stat-value" id="statInquiries">—</div><div class="stat-label">Event Inquiries</div></div>
+            <div class="stat-card"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div><div class="stat-value" id="statPending">—</div><div class="stat-label">Pending Reservations</div></div>
+            <div class="stat-card"><div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5S13.67 7 14.5 7s1.5.67 1.5 1.5S15.33 10 14.5 10z"/><path d="M21 15l-5-5L5 21"/></svg></div><div class="stat-value" id="statImages">—</div><div class="stat-label">Site Images Uploaded</div></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Quick Actions</div>
+            <div class="card-sub">Jump to common tasks</div>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+              <button class="btn-copper" onclick="showPanel('images')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Upload Images</button>
+              <button class="btn-copper" onclick="showPanel('rooms')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v11a2 2 0 002 2h14a2 2 0 002-2V7"/><path d="M21 10H3V7a4 4 0 014-4h10a4 4 0 014 4v3z"/></svg>Room Photos</button>
+              <button class="btn-outline" onclick="showPanel('bookings')">View Bookings</button>
+              <button class="btn-outline" onclick="showPanel('inquiries')">View Inquiries</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Recent Bookings</div>
+            <div class="card-sub">Last 5 reservations received</div>
+            <div class="table-wrap"><table id="recentBookingsTable"><tbody><tr><td colspan="5" class="loading"><div class="spinner"></div></td></tr></tbody></table></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── SITE IMAGES PANEL ─── -->
+      <div class="panel" id="panel-images">
+        <div class="main-header">
+          <div><h1>Site Images</h1><p>Upload images for each section of the website. Each slot replaces the placeholder on the live site.</p></div>
+        </div>
+        <div class="main-content">
+          <div class="card">
+            <div class="card-title">Homepage Feature Cards</div>
+            <div class="card-sub">These 4 photos appear in the grid below the hero on the homepage</div>
+            <div class="image-slots-grid" id="featureImageSlots"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Page Hero Banners</div>
+            <div class="card-sub">Full-width banner images at the top of interior pages</div>
+            <div class="image-slots-grid" id="heroImageSlots"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Events & Weddings Photos</div>
+            <div class="card-sub">Images for the three event type cards (Weddings, Corporate, Celebrations)</div>
+            <div class="image-slots-grid" id="eventImageSlots"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── ROOM PHOTOS PANEL ─── -->
+      <div class="panel" id="panel-rooms">
+        <div class="main-header">
+          <div><h1>Room Photos</h1><p>Upload multiple photos for each room. The first photo shown is used as the main room card image.</p></div>
+        </div>
+        <div class="main-content" id="roomPhotosPanelContent">
+          <div class="loading"><div class="spinner"></div><p>Loading room photo manager...</p></div>
+        </div>
+      </div>
+
+      <!-- ─── BOOKINGS PANEL ─── -->
+      <div class="panel" id="panel-bookings">
+        <div class="main-header">
+          <div><h1>Reservations</h1><p>Manage all booking requests from guests.</p></div>
+          <div class="header-actions">
+            <button class="btn-outline" onclick="loadBookings()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="main-content">
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Guest</th><th>Email</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Guests</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="bookingsTableBody"><tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── INQUIRIES PANEL ─── -->
+      <div class="panel" id="panel-inquiries">
+        <div class="main-header">
+          <div><h1>Event Inquiries</h1><p>Manage event booking requests from potential clients.</p></div>
+          <div class="header-actions">
+            <button class="btn-outline" onclick="loadInquiries()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+        <div class="main-content">
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Name</th><th>Email</th><th>Event Type</th><th>Guests</th><th>Preferred Date</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody id="inquiriesTableBody"><tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- TOAST -->
+  <div id="toast"></div>
+
+  <script>
+    /* ════════════════════
+       AUTH
+    ════════════════════ */
+    async function adminLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPass').value;
+      const errEl = document.getElementById('loginErr');
+      errEl.style.display = 'none';
+      if (!email || !pass) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
+      try {
+        const { auth, signInWithEmailAndPassword } = window._fb;
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch(e) {
+        errEl.textContent = 'Invalid credentials. Please try again.';
+        errEl.style.display = 'block';
+      }
+    }
+
+    async function adminLogout() {
+      const { auth, signOut } = window._fb;
+      await signOut(auth);
+    }
+
+    /* Set avatar letter */
+    document.addEventListener('DOMContentLoaded', () => {
+      const emailEl = document.getElementById('adminEmail');
+      const obs = new MutationObserver(() => {
+        const letter = (emailEl.textContent || 'A')[0].toUpperCase();
+        document.getElementById('adminAvatarLetter').textContent = letter;
+      });
+      obs.observe(emailEl, { childList: true, characterData: true, subtree: true });
+    });
+
+    /* ════════════════════
+       NAVIGATION
+    ════════════════════ */
+    function showPanel(name) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+      document.getElementById(`panel-${name}`).classList.add('active');
+      document.querySelector(`.sidebar-item[data-panel="${name}"]`).classList.add('active');
+
+      // Lazy load panel data
+      if (name === 'images' && !window._imagesLoaded) { renderImageSlots(); window._imagesLoaded = true; }
+      if (name === 'rooms' && !window._roomPhotosLoaded) { renderRoomPhotos(); window._roomPhotosLoaded = true; }
+      if (name === 'bookings') loadBookings();
+      if (name === 'inquiries') loadInquiries();
+    }
+
+    /* ════════════════════
+       TOAST
+    ════════════════════ */
+    let toastTimeout;
+    function showToast(msg, type = 'success') {
+      const t = document.getElementById('toast');
+      clearTimeout(toastTimeout);
+      t.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">${type === 'success' ? '<polyline points="20 6 9 17 4 12"/>' : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'}</svg><span>${msg}</span>`;
+      t.className = type; t.style.display = 'flex';
+      toastTimeout = setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+
+    /* ════════════════════
+       IMAGE SLOT DEFINITIONS
+    ════════════════════ */
+    const IMAGE_SLOTS = {
+      feature: [
+        { slot: 'feature_boutique_rooms',  name: 'Boutique Rooms Card',    location: 'Homepage → Feature Grid → Card 1' },
+        { slot: 'feature_restaurant',      name: 'Restaurant & Oak Bar',    location: 'Homepage → Feature Grid → Card 2' },
+        { slot: 'feature_event_hall',      name: 'Event Hall Card',         location: 'Homepage → Feature Grid → Card 3' },
+        { slot: 'feature_scenic_views',    name: 'Scenic Views Card',       location: 'Homepage → Feature Grid → Card 4' },
+      ],
+      hero: [
+        { slot: 'rooms_page_hero',         name: 'Accommodation Page Hero', location: 'Accommodation Page → Top Banner' },
+        { slot: 'events_page_hero',        name: 'Events Page Hero',        location: 'Weddings & Events Page → Top Banner' },
+      ],
+      event: [
+        { slot: 'event_weddings',          name: 'Weddings Photo',          location: 'Events Page → Weddings Card' },
+        { slot: 'event_corporate',         name: 'Corporate Photo',         location: 'Events Page → Corporate Card' },
+        { slot: 'event_celebrations',      name: 'Celebrations Photo',      location: 'Events Page → Celebrations Card' },
+      ]
+    };
+
+    const ROOMS_LIST = [
+      { id: 'spur-tree-suite',    name: 'Spur Tree Suite',    desc: 'Signature room · Main card image + gallery' },
+      { id: 'mandeville-retreat', name: 'Mandeville Retreat', desc: 'Popular room · Main card image + gallery' },
+      { id: 'hilltop-haven',      name: 'Hilltop Haven',      desc: 'Panoramic view room · Main card image + gallery' },
+      { id: 'garden-cottage',     name: 'Garden Cottage',     desc: 'Intimate cottage · Main card image + gallery' },
+    ];
+
+    /* ════════════════════
+       RENDER IMAGE SLOTS
+    ════════════════════ */
+    async function renderImageSlots() {
+      // Load current images from Firestore
+      const { db, collection, getDocs } = window._fb;
+      const snap = await getDocs(collection(db, 'site_images'));
+      const existing = {};
+      snap.forEach(d => { existing[d.data().slot] = { url: d.data().url, docId: d.id }; });
+
+      const renderGroup = (containerId, slots) => {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        slots.forEach(s => {
+          const hasImage = !!existing[s.slot];
+          const url = hasImage ? existing[s.slot].url : '';
+          const div = document.createElement('div');
+          div.className = 'image-slot';
+          div.id = `slot-${s.slot}`;
+          div.innerHTML = `
+            <div class="image-slot-preview">
+              <img src="${url}" alt="${s.name}" ${hasImage ? 'class="loaded"' : ''} onload="this.classList.add('loaded')" />
+              <div class="image-slot-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg><span>No image yet</span></div>
+              <div class="image-slot-overlay">
+                ${hasImage ? `<button class="action-btn cancel" onclick="removeSlotImage('${s.slot}', '${existing[s.slot].docId}')">Remove</button>` : ''}
+              </div>
+            </div>
+            <div class="image-slot-body">
+              <span class="slot-status ${hasImage ? 'uploaded' : 'empty'}">${hasImage ? '✓ Uploaded' : 'No Image'}</span>
+              <div class="image-slot-name">${s.name}</div>
+              <div class="image-slot-location"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>${s.location}</div>
+              <div class="upload-zone" id="zone-${s.slot}">
+                <input type="file" accept="image/*" onchange="uploadSlotImage(this, '${s.slot}', '${existing[s.slot]?.docId || ''}')">
+                <div class="upload-zone-text"><strong>Click to upload</strong> or drag & drop<br><span style="color:var(--grey-light);">JPG, PNG, WEBP up to 10MB</span></div>
+                <div class="progress-bar" id="prog-${s.slot}"><div class="progress-fill" id="fill-${s.slot}" style="width:0%"></div></div>
+              </div>
+            </div>`;
+          container.appendChild(div);
+        });
+      };
+
+      renderGroup('featureImageSlots', IMAGE_SLOTS.feature);
+      renderGroup('heroImageSlots', IMAGE_SLOTS.hero);
+      renderGroup('eventImageSlots', IMAGE_SLOTS.event);
+
+      // Update stat
+      document.getElementById('statImages').textContent = snap.size;
+    }
+
+    async function uploadSlotImage(input, slot, existingDocId) {
+      const file = input.files[0];
+      if (!file) return;
+      const { storage, db, ref, uploadBytesResumable, getDownloadURL, collection, addDoc, doc, setDoc } = window._fb;
+      const progBar = document.getElementById(`prog-${slot}`);
+      const fill = document.getElementById(`fill-${slot}`);
+      progBar.style.display = 'block';
+
+      const path = `site_images/${slot}_${Date.now()}_${file.name}`;
+      const storageRef = ref(storage, path);
+      const task = uploadBytesResumable(storageRef, file);
+
+      task.on('state_changed',
+        snap => { const pct = (snap.bytesTransferred / snap.totalBytes) * 100; fill.style.width = pct + '%'; },
+        err => { showToast('Upload failed: ' + err.message, 'error'); progBar.style.display = 'none'; },
+        async () => {
+          const url = await getDownloadURL(task.snapshot.ref);
+          // Save to Firestore
+          if (existingDocId) {
+            await window._fb.updateDoc(doc(db, 'site_images', existingDocId), { url, path, updatedAt: window._fb.serverTimestamp() });
+          } else {
+            await addDoc(collection(db, 'site_images'), { slot, url, path, createdAt: window._fb.serverTimestamp() });
+          }
+          showToast(`✓ ${slot.replace(/_/g,' ')} updated successfully`);
+          // Refresh slots
+          window._imagesLoaded = false;
+          renderImageSlots().then(() => { window._imagesLoaded = true; });
+        }
+      );
+    }
+
+    async function removeSlotImage(slot, docId) {
+      if (!confirm('Remove this image? The site will fall back to the default placeholder.')) return;
+      const { db, doc, deleteDoc } = window._fb;
+      await deleteDoc(doc(db, 'site_images', docId));
+      showToast(`Image removed from ${slot.replace(/_/g,' ')}`);
+      window._imagesLoaded = false;
+      renderImageSlots().then(() => { window._imagesLoaded = true; });
+    }
+
+    /* ════════════════════
+       ROOM PHOTOS
+    ════════════════════ */
+    async function renderRoomPhotos() {
+      const container = document.getElementById('roomPhotosPanelContent');
+      const { db, collection, getDocs, query, orderBy } = window._fb;
+
+      container.innerHTML = '';
+
+      for (const room of ROOMS_LIST) {
+        // Load photos for this room
+        let photos = [];
+        try {
+          const snap = await getDocs(query(collection(db, `room_photos_${room.id}`)));
+          snap.forEach(d => photos.push({ id: d.id, ...d.data() }));
+        } catch(e) {}
+        photos.sort((a,b) => (a.order||0) - (b.order||0));
+
+        const section = document.createElement('div');
+        section.className = 'room-slot-section card';
+        section.innerHTML = `
+          <div class="room-slot-header">
+            <div>
+              <div class="room-slot-title">${room.name}</div>
+              <div class="room-slot-subtitle">${room.desc}</div>
+            </div>
+            <span class="slot-status ${photos.length > 0 ? 'uploaded' : 'empty'}">${photos.length} photo${photos.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div class="room-photos-grid" id="photos-${room.id}">
+            ${photos.map(p => `
+              <div class="room-photo-item" id="photo-${p.id}">
+                <img src="${p.url}" alt="${room.name}" loading="lazy" />
+                <button class="remove-btn" onclick="removeRoomPhoto('${room.id}','${p.id}','${p.path||''}')">&times;</button>
+              </div>`).join('')}
+            <div class="room-add-photo" id="add-${room.id}">
+              <input type="file" accept="image/*" multiple onchange="uploadRoomPhotos(this,'${room.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>Add Photos</span>
+            </div>
+          </div>`;
+        container.appendChild(section);
+      }
+    }
+
+    async function uploadRoomPhotos(input, roomId) {
+      const files = Array.from(input.files);
+      if (!files.length) return;
+      const { storage, db, ref, uploadBytesResumable, getDownloadURL, collection, addDoc, serverTimestamp } = window._fb;
+
+      for (const file of files) {
+        const path = `room_photos/${roomId}/${Date.now()}_${file.name}`;
+        const storageRef = ref(storage, path);
+        const task = uploadBytesResumable(storageRef, file);
+
+        await new Promise((resolve, reject) => {
+          task.on('state_changed', null,
+            err => { showToast('Upload failed: ' + err.message, 'error'); reject(err); },
+            async () => {
+              const url = await getDownloadURL(task.snapshot.ref);
+              const docRef = await addDoc(collection(db, `room_photos_${roomId}`), { url, path, order: Date.now(), createdAt: serverTimestamp() });
+              // Add to UI
+              const grid = document.getElementById(`photos-${roomId}`);
+              const addBtn = document.getElementById(`add-${roomId}`);
+              const div = document.createElement('div');
+              div.className = 'room-photo-item';
+              div.id = `photo-${docRef.id}`;
+              div.innerHTML = `<img src="${url}" alt="Room photo" /><button class="remove-btn" onclick="removeRoomPhoto('${roomId}','${docRef.id}','${path}')">&times;</button>`;
+              grid.insertBefore(div, addBtn);
+              resolve();
+            }
+          );
+        }).catch(() => {});
+      }
+      showToast(`✓ ${files.length} photo${files.length>1?'s':''} uploaded for ${roomId.replace(/-/g,' ')}`);
+      // Update the ROOMS_DATA image on the main site via site_images slot
+      // (first photo becomes the main card image)
+      const firstPhoto = document.querySelector(`#photos-${roomId} img`);
+      if (firstPhoto) {
+        const slot = `room_${roomId.replace(/-/g,'_')}`;
+        try {
+          const { db: db2, collection: col2, addDoc: add2, getDocs: get2, doc, updateDoc, serverTimestamp: st2 } = window._fb;
+          const snap = await get2(col2(db2, 'site_images'));
+          const existing = null; snap.forEach(d => { if(d.data().slot===slot) existing = { id: d.id, ...d.data() }; });
+          // This logic handled server-side on main site load
+        } catch(e) {}
+      }
+    }
+
+    async function removeRoomPhoto(roomId, photoId, path) {
+      if (!confirm('Remove this photo?')) return;
+      const { db, doc, deleteDoc, storage, ref, deleteObject } = window._fb;
+      try {
+        if (path) await deleteObject(ref(storage, path)).catch(() => {});
+        await deleteDoc(doc(db, `room_photos_${roomId}`, photoId));
+        const el = document.getElementById(`photo-${photoId}`);
+        if (el) el.remove();
+        showToast('Photo removed');
+      } catch(e) { showToast('Failed to remove photo', 'error'); }
+    }
+
+    /* ════════════════════
+       BOOKINGS
+    ════════════════════ */
+    async function loadBookings() {
+      const tbody = document.getElementById('bookingsTableBody');
+      tbody.innerHTML = '<tr><td colspan="8"><div class="loading"><div class="spinner"></div></div></td></tr>';
+      try {
+        const { db, collection, getDocs, query, orderBy } = window._fb;
+        const snap = await getDocs(query(collection(db, 'bookings'), orderBy('createdAt', 'desc')));
+        const docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+
+        document.getElementById('statBookings').textContent = docs.length;
+        document.getElementById('statPending').textContent = docs.filter(d=>d.status==='pending').length;
+        document.getElementById('bookingBadge').textContent = docs.filter(d=>d.status==='pending').length;
+
+        if (!docs.length) { tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/></svg><p>No bookings yet</p></div></td></tr>'; return; }
+
+        tbody.innerHTML = docs.map(b => `
+          <tr>
+            <td style="font-weight:600;color:var(--grey-pearl);">${b.guestName || '—'}</td>
+            <td>${b.guestEmail || '—'}</td>
+            <td style="text-transform:capitalize;">${(b.roomId||'').replace(/-/g,' ')}</td>
+            <td>${b.checkIn || '—'}</td>
+            <td>${b.checkOut || '—'}</td>
+            <td>${b.numberOfGuests || '—'}</td>
+            <td><span class="status-badge status-${b.status}">${b.status}</span></td>
+            <td style="display:flex;gap:6px;flex-wrap:wrap;">
+              ${b.status === 'pending' ? `<button class="action-btn confirm" onclick="updateBookingStatus('${b.id}','confirmed')">Confirm</button><button class="action-btn cancel" onclick="updateBookingStatus('${b.id}','cancelled')">Cancel</button>` : ''}
+              ${b.status === 'confirmed' ? `<button class="action-btn cancel" onclick="updateBookingStatus('${b.id}','cancelled')">Cancel</button>` : ''}
+            </td>
+          </tr>`).join('');
+
+        // Recent bookings for overview
+        const recentTbody = document.getElementById('recentBookingsTable').querySelector('tbody');
+        if (recentTbody) {
+          recentTbody.innerHTML = docs.slice(0,5).map(b => `<tr><td style="font-weight:600;color:var(--grey-pearl);">${b.guestName||'—'}</td><td>${(b.roomId||'').replace(/-/g,' ')}</td><td>${b.checkIn||'—'}</td><td><span class="status-badge status-${b.status}">${b.status}</span></td></tr>`).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--grey-silver);">No bookings yet</td></tr>';
+        }
+      } catch(e) { tbody.innerHTML = `<tr><td colspan="8" style="color:#f87171;padding:1rem;">Error loading bookings: ${e.message}</td></tr>`; }
+    }
+
+    async function updateBookingStatus(bookingId, status) {
+      const { db, doc, updateDoc } = window._fb;
+      try {
+        await updateDoc(doc(db, 'bookings', bookingId), { status, updatedAt: window._fb.serverTimestamp() });
+        showToast(`Booking ${status}`);
+        loadBookings();
+      } catch(e) { showToast('Update failed: ' + e.message, 'error'); }
+    }
+
+    /* ════════════════════
+       INQUIRIES
+    ════════════════════ */
+    async function loadInquiries() {
+      const tbody = document.getElementById('inquiriesTableBody');
+      tbody.innerHTML = '<tr><td colspan="7"><div class="loading"><div class="spinner"></div></div></td></tr>';
+      try {
+        const { db, collection, getDocs, query, orderBy } = window._fb;
+        const snap = await getDocs(query(collection(db, 'event_inquiries'), orderBy('createdAt', 'desc')));
+        const docs = [];
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+
+        document.getElementById('statInquiries').textContent = docs.length;
+        document.getElementById('inquiryBadge').textContent = docs.filter(d=>d.status==='new').length;
+
+        if (!docs.length) { tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg><p>No event inquiries yet</p></div></td></tr>'; return; }
+
+        tbody.innerHTML = docs.map(i => `
+          <tr>
+            <td style="font-weight:600;color:var(--grey-pearl);">${i.name||'—'}</td>
+            <td>${i.email||'—'}</td>
+            <td style="text-transform:capitalize;">${i.eventType||'—'}</td>
+            <td>${i.estimatedGuests||'—'}</td>
+            <td>${i.preferredDate||'Flexible'}</td>
+            <td><span class="status-badge status-${i.status}">${i.status}</span></td>
+            <td style="display:flex;gap:6px;">
+              ${i.status === 'new' ? `<button class="action-btn confirm" onclick="updateInquiryStatus('${i.id}','reviewed')">Mark Reviewed</button>` : ''}
+              <button class="action-btn cancel" onclick="updateInquiryStatus('${i.id}','archived')">Archive</button>
+            </td>
+          </tr>`).join('');
+      } catch(e) { tbody.innerHTML = `<tr><td colspan="7" style="color:#f87171;padding:1rem;">Error: ${e.message}</td></tr>`; }
+    }
+
+    async function updateInquiryStatus(id, status) {
+      const { db, doc, updateDoc } = window._fb;
+      try {
+        await updateDoc(doc(db, 'event_inquiries', id), { status });
+        showToast(`Inquiry marked as ${status}`);
+        loadInquiries();
+      } catch(e) { showToast('Update failed', 'error'); }
+    }
+
+    /* ════════════════════
+       INIT
+    ════════════════════ */
+    async function loadAllData() {
+      loadBookings();
+      loadInquiries();
+      // Count images
+      try {
+        const { db, collection, getDocs } = window._fb;
+        const snap = await getDocs(collection(db, 'site_images'));
+        document.getElementById('statImages').textContent = snap.size;
+      } catch(e) {}
+    }
+
+    // Load data immediately on page open (no login required)
+    document.addEventListener('DOMContentLoaded', () => {
+      // Small delay to let Firebase init
+      setTimeout(() => {
+        if (typeof loadAllData === 'function') loadAllData();
+      }, 800);
+    });
+
+    // Drag & drop support for upload zones
+    document.addEventListener('dragover', e => e.preventDefault());
+    document.addEventListener('drop', e => {
+      const zone = e.target.closest('.upload-zone');
+      if (!zone) return;
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const input = zone.querySelector('input[type=file]');
+      if (input && e.dataTransfer.files.length) {
+        const dt = new DataTransfer();
+        for (const f of e.dataTransfer.files) dt.items.add(f);
+        input.files = dt.files;
+        input.dispatchEvent(new Event('change'));
+      }
+    });
+    document.addEventListener('dragenter', e => { if (e.target.closest('.upload-zone')) e.target.closest('.upload-zone').classList.add('dragover'); });
+    document.addEventListener('dragleave', e => { if (e.target.closest('.upload-zone')) e.target.closest('.upload-zone').classList.remove('dragover'); });
+  </script>
+
+</body>
+</html>
