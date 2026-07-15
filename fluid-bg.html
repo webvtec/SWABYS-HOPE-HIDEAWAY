@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WebGL Fluid Paint — Scroll to Stir</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; overflow-x: hidden; background: #2A2C2E; }
+
+  /* The fluid canvas — fixed background layer */
+  #fluidCanvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    z-index: -1;
+  }
+
+  /* Tall scrollable area so you can actually scroll */
+  .scroll-space {
+    position: relative;
+    z-index: 1;
+    height: 600vh;
+    pointer-events: none;
+  }
+
+  /* Scroll hint */
+  .hint {
+    position: fixed;
+    bottom: 32px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    color: rgba(255,255,255,0.5);
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    pointer-events: none;
+    animation: pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:0.5} 50%{opacity:0.15} }
+</style>
+</head>
+<body>
+
+<canvas id="fluidCanvas"></canvas>
+<div class="scroll-space"></div>
+<div class="hint">↓ Scroll to stir the paint ↓</div>
+
+<script>
+/*  ═══════════════════════════════════════════════════════════
+    RAW WEBGL NAVIER-STOKES FLUID SIMULATION
+    ───────────────────────────────────────────────────────────
+    GPU ping-pong framebuffers doing:
+      1. External force (splat) injection — driven by scroll
+      2. Advection of velocity + dye
+      3. Divergence calculation
+      4. Jacobi pressure solve (20–40 iterations)
+      5. Gradient subtraction (pressure → velocity correction)
+      6. Viscous diffusion via implicit Jacobi
+    All on fragment shaders. No libraries.
+    ═══════════════════════════════════════════════════════════ */
+
+const canvas = document.getElementById('fluidCanvas');
+const gl = canvas.getContext('webgl', { alpha: false, preserveDrawingBuffer: false });
+
+if (!gl) {
+  document.body.innerHTML = '<p style="color:#fff;padding:2rem;">WebGL not supported.</p>';
+  throw new Error('No WebGL');
+}
+
+// ── Check for float texture support ──
+const halfFloat = gl.getExtension('OES_texture_half_float');
+const halfFloatLinear = gl.getExtension('OES_texture_half_float_linear');
+const floatExt = gl.getExtension('OES_texture_float');
+const floatLinear = gl.getExtension('OES_texture_float_linear');
+
+let texType = gl.UNSIGNED_BYTE;
+if (halfFloat) texType = halfFloat.HALF_FLOAT_OES;
+else if (floatExt) texType = gl.FLOAT;
+
+// ── Simulation config ──
+const SIM_RES = 256;            // velocity/pressure grid
+const DYE_RES = 1024;           // dye (color) grid — higher for crisp paint
+const PRESSURE_ITERS = 25;      // Jacobi iterations for pressure solve
+const VELOCITY_DISSIPATION = 0.995;
+const DYE_DISSIPATION = 0.997;  // paint fades very slowly
+const VISCOSITY = 0.3;
+const CURL_STRENGTH = 18;       // vorticity confinement
+const SPLAT_RADIUS = 0.004;
+const SPLAT_FORCE = 4000;
+
+// ── Resize ──
+let W, H, simW, simH, dyeW, dyeH;
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  const aspect = W / H;
+  simW = SIM_RES; simH = Math.round(SIM_RES / aspect);
+  dyeW = DYE_RES; dyeH = Math.round(DYE_RES / aspect);
+  initFramebuffers();
+  // Re-seed initial paint
+  splatInitialPaint();
+}
+
+// ── Compile shaders ──
+function compileShader(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src);
+  gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS))
+    throw new Error(gl.getShaderInfoLog(s));
+  return s;
+}
+
+function createProgram(vs, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, compileShader(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, compileShader(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS))
+    throw new Error(gl.getProgramInfoLog(p));
+  const uniforms = {};
+  const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
+  for (let i = 0; i < n; i++) {
+    const info = gl.getActiveUniform(p, i);
+    uniforms[info.name] = gl.getUniformLocation(p, info.name);
+  }
+  return { program: p, uniforms };
+}
+
+// ── Vertex shader (fullscreen quad) ──
+const VS = `
+  attribute vec2 aPosition;
+  varying vec2 vUv;
+  varying vec2 vL, vR, vT, vB;
+  uniform vec2 texelSize;
+  void main() {
+    vUv = aPosition * 0.5 + 0.5;
+    vL = vUv - vec2(texelSize.x, 0.0);
+    vR = vUv + vec2(texelSize.x, 0.0);
+    vT = vUv + vec2(0.0, texelSize.y);
+    vB = vUv - vec2(0.0, texelSize.y);
+    gl_Position = vec4(aPosition, 0.0, 1.0);
+  }
+`;
+
+// ── Fragment shaders ──
+const advectionFS = `
+  precision highp float;
+  varying vec2 vUv;
+  uniform sampler2D uVelocity;
+  uniform sampler2D uSource;
+  uniform vec2 texelSize;
+  uniform float dt;
+  uniform float dissipation;
+  void main() {
+    vec2 coord = vUv - dt * texture2D(uVelocity, vUv).xy * texelSize;
+    gl_FragColor = dissipation * texture2D(uSource, coord);
+    gl_FragColor.a = 1.0;
+  }
+`;
+
+const divergenceFS = `
+  precision highp float;
+  varying vec2 vL, vR, vT, vB;
+  uniform sampler2D uVelocity;
+  void main() {
+    float L = texture2D(uVelocity, vL).x;
+    float R = texture2D(uVelocity, vR).x;
+    float T = texture2D(uVelocity, vT).y;
+    float B = texture2D(uVelocity, vB).y;
+    float div = 0.5 * (R - L + T - B);
+    gl_FragColor = vec4(div, 0.0, 0.0, 1.0);
+  }
+`;
+
+const pressureFS = `
+  precision highp float;
+  varying vec2 vL, vR, vT, vB, vUv;
+  uniform sampler2D uPressure;
+  uniform sampler2D uDivergence;
+  void main() {
+    float L = texture2D(uPressure, vL).x;
+    float R = texture2D(uPressure, vR).x;
+    float T = texture2D(uPressure, vT).x;
+    float B = texture2D(uPressure, vB).x;
+    float div = texture2D(uDivergence, vUv).x;
+    float pressure = (L + R + B + T - div) * 0.25;
+    gl_FragColor = vec4(pressure, 0.0, 0.0, 1.0);
+  }
+`;
+
+const gradientFS = `
+  precision highp float;
+  varying vec2 vL, vR, vT, vB, vUv;
+  uniform sampler2D uPressure;
+  uniform sampler2D uVelocity;
+  void main() {
+    float L = texture2D(uPressure, vL).x;
+    float R = texture2D(uPressure, vR).x;
+    float T = texture2D(uPressure, vT).x;
+    float B = texture2D(uPressure, vB).x;
+    vec2 vel = texture2D(uVelocity, vUv).xy;
+    vel.xy -= vec2(R - L, T - B);
+    gl_FragColor = vec4(vel, 0.0, 1.0);
+  }
+`;
+
+const curlFS = `
+  precision highp float;
+  varying vec2 vL, vR, vT, vB;
+  uniform sampler2D uVelocity;
+  void main() {
+    float L = texture2D(uVelocity, vL).y;
+    float R = texture2D(uVelocity, vR).y;
+    float T = texture2D(uVelocity, vT).x;
+    float B = texture2D(uVelocity, vB).x;
+    float vorticity = R - L - T + B;
+    gl_FragColor = vec4(0.5 * vorticity, 0.0, 0.0, 1.0);
+  }
+`;
+
+const vorticityFS = `
+  precision highp float;
+  varying vec2 vL, vR, vT, vB, vUv;
+  uniform sampler2D uVelocity;
+  uniform sampler2D uCurl;
+  uniform float curl;
+  uniform float dt;
+  void main() {
+    float L = texture2D(uCurl, vL).x;
+    float R = texture2D(uCurl, vR).x;
+    float T = texture2D(uCurl, vT).x;
+    float B = texture2D(uCurl, vB).x;
+    float C = texture2D(uCurl, vUv).x;
+    vec2 force = 0.5 * vec2(abs(T) - abs(B), abs(R) - abs(L));
+    force /= length(force) + 0.0001;
+    force *= curl * C;
+    force.y *= -1.0;
+    vec2 vel = texture2D(uVelocity, vUv).xy;
+    vel += force * dt;
+    gl_FragColor = vec4(vel, 0.0, 1.0);
+  }
+`;
+
+const splatFS = `
+  precision highp float;
+  varying vec2 vUv;
+  uniform sampler2D uTarget;
+  uniform float aspectRatio;
+  uniform vec3 color;
+  uniform vec2 point;
+  uniform float radius;
+  void main() {
+    vec2 p = vUv - point;
+    p.x *= aspectRatio;
+    vec3 splat = exp(-dot(p,p) / radius) * color;
+    vec3 base = texture2D(uTarget, vUv).xyz;
+    gl_FragColor = vec4(base + splat, 1.0);
+  }
+`;
+
+const displayFS = `
+  precision highp float;
+  varying vec2 vUv;
+  uniform sampler2D uTexture;
+  void main() {
+    vec3 dye = texture2D(uTexture, vUv).rgb;
+    // Base metallic grey #2A2C2E = (42,44,46)/255
+    vec3 base = vec3(0.165, 0.173, 0.180);
+    // Composite dye over base — additive blend
+    vec3 col = base + dye;
+
+    // Subtle specular sheen — shifts slowly
+    float sheen = 0.012 * smoothstep(0.3, 0.7, vUv.y) * (1.0 - smoothstep(0.4, 0.8, vUv.x));
+    col += vec3(sheen);
+
+    // Vignette for polished metallic depth
+    vec2 vc = vUv * 2.0 - 1.0;
+    float vign = 1.0 - 0.15 * dot(vc, vc);
+    col *= vign;
+
+    gl_FragColor = vec4(col, 1.0);
+  }
+`;
+
+const clearFS = `
+  precision highp float;
+  varying vec2 vUv;
+  uniform sampler2D uTexture;
+  uniform float value;
+  void main() {
+    gl_FragColor = value * texture2D(uTexture, vUv);
+  }
+`;
+
+// ── Build programs ──
+const advectionProg  = createProgram(VS, advectionFS);
+const divergenceProg = createProgram(VS, divergenceFS);
+const pressureProg   = createProgram(VS, pressureFS);
+const gradientProg   = createProgram(VS, gradientFS);
+const curlProg       = createProgram(VS, curlFS);
+const vorticityProg  = createProgram(VS, vorticityFS);
+const splatProg      = createProgram(VS, splatFS);
+const displayProg    = createProgram(VS, displayFS);
+const clearProg      = createProgram(VS, clearFS);
+
+// ── Fullscreen quad ──
+const quad = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, -1,1, 1,1, 1,-1]), gl.STATIC_DRAW);
+
+// ── Framebuffer management ──
+function createFBO(w, h, internalFormat, format, type, filter) {
+  gl.activeTexture(gl.TEXTURE0);
+  const tex = gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D, tex);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filter);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+  gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, w, h, 0, format, type, null);
+
+  const fbo = gl.createFramebuffer();
+  gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+  gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  gl.viewport(0, 0, w, h);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  return { texture: tex, fbo, width: w, height: h,
+    attach(unit) { gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex); return unit; }
+  };
+}
+
+function createDoubleFBO(w, h, internalFormat, format, type, filter) {
+  let fbo1 = createFBO(w, h, internalFormat, format, type, filter);
+  let fbo2 = createFBO(w, h, internalFormat, format, type, filter);
+  return {
+    get read() { return fbo1; },
+    get write() { return fbo2; },
+    swap() { [fbo1, fbo2] = [fbo2, fbo1]; }
+  };
+}
+
+let velocity, pressure, divergence, curl, dye;
+
+function initFramebuffers() {
+  const simFilter = (halfFloatLinear || floatLinear) ? gl.LINEAR : gl.NEAREST;
+  const dyeFilter = gl.LINEAR;
+  velocity   = createDoubleFBO(simW, simH, gl.RGBA, gl.RGBA, texType, simFilter);
+  pressure   = createDoubleFBO(simW, simH, gl.RGBA, gl.RGBA, texType, simFilter);
+  divergence = createFBO(simW, simH, gl.RGBA, gl.RGBA, texType, simFilter);
+  curl       = createFBO(simW, simH, gl.RGBA, gl.RGBA, texType, simFilter);
+  dye        = createDoubleFBO(dyeW, dyeH, gl.RGBA, gl.RGBA, texType, dyeFilter);
+}
+
+// ── Draw calls ──
+function blit(target) {
+  if (target == null) {
+    gl.viewport(0, 0, W, H);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  } else {
+    gl.viewport(0, 0, target.width, target.height);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, target.fbo);
+  }
+  gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+}
+
+function useProg(prog) {
+  gl.useProgram(prog.program);
+  const posLoc = gl.getAttribLocation(prog.program, 'aPosition');
+  gl.bindBuffer(gl.ARRAY_BUFFER, quad);
+  gl.enableVertexAttribArray(posLoc);
+  gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
+  return prog.uniforms;
+}
+
+// ── Splat: inject force + dye at a point ──
+function splat(x, y, dx, dy, color) {
+  // Velocity splat
+  let u = useProg(splatProg);
+  gl.uniform1i(u.uTarget, velocity.read.attach(0));
+  gl.uniform1f(u.aspectRatio, W / H);
+  gl.uniform2f(u.point, x, y);
+  gl.uniform3f(u.color, dx, dy, 0.0);
+  gl.uniform1f(u.radius, SPLAT_RADIUS);
+  blit(velocity.write);
+  velocity.swap();
+
+  // Dye splat
+  u = useProg(splatProg);
+  gl.uniform1i(u.uTarget, dye.read.attach(0));
+  gl.uniform1f(u.aspectRatio, W / H);
+  gl.uniform2f(u.point, x, y);
+  gl.uniform3f(u.color, color[0], color[1], color[2]);
+  gl.uniform1f(u.radius, SPLAT_RADIUS);
+  blit(dye.write);
+  dye.swap();
+}
+
+// ── Initial paint deposits ──
+function splatInitialPaint() {
+  // Copper orange: #D97724 → (217,119,36)/255 = (0.851, 0.467, 0.141)
+  const copper = [0.35, 0.18, 0.05];
+  // White: #FFFFFF → toned down for additive blend
+  const white = [0.30, 0.30, 0.30];
+  // Deep copper accent
+  const deepCopper = [0.25, 0.12, 0.03];
+
+  // Scatter copper veins
+  for (let i = 0; i < 8; i++) {
+    const x = 0.1 + Math.random() * 0.8;
+    const y = 0.1 + Math.random() * 0.8;
+    const dx = (Math.random() - 0.5) * 80;
+    const dy = (Math.random() - 0.5) * 80;
+    splat(x, y, dx, dy, i % 3 === 0 ? deepCopper : copper);
+  }
+  // Scatter white ribbons
+  for (let i = 0; i < 6; i++) {
+    const x = 0.1 + Math.random() * 0.8;
+    const y = 0.1 + Math.random() * 0.8;
+    const dx = (Math.random() - 0.5) * 60;
+    const dy = (Math.random() - 0.5) * 60;
+    splat(x, y, dx, dy, white);
+  }
+}
+
+// ── Scroll tracking ──
+let scrollY = 0, lastScrollY = 0, scrollDelta = 0;
+let smoothDelta = 0;
+
+window.addEventListener('scroll', () => {
+  scrollY = window.scrollY;
+  scrollDelta = scrollY - lastScrollY;
+  lastScrollY = scrollY;
+}, { passive: true });
+
+// ── Idle drift timer ──
+let idleTime = 0;
+
+// ── Main simulation loop @ 60fps ──
+let lastTime = 0;
+function step(timestamp) {
+  requestAnimationFrame(step);
+
+  const dt = Math.min((timestamp - lastTime) / 1000, 0.033);
+  lastTime = timestamp;
+
+  // Smooth out scroll velocity with high damping
+  smoothDelta += (scrollDelta - smoothDelta) * 0.15;
+  scrollDelta *= 0.75; // high viscosity — dies fast
+
+  const scrollSpeed = Math.abs(smoothDelta);
+  idleTime += dt;
+
+  // ── SCROLL-DRIVEN STIRRING ──
+  if (scrollSpeed > 0.5) {
+    idleTime = 0;
+    // Map scroll velocity to splat force
+    const force = Math.min(scrollSpeed * 120, SPLAT_FORCE);
+    const numSplats = Math.min(Math.ceil(scrollSpeed / 3), 5);
+
+    for (let i = 0; i < numSplats; i++) {
+      const x = 0.15 + Math.random() * 0.7;
+      const y = 0.15 + Math.random() * 0.7;
+      // Force direction follows scroll + radial swirl
+      const angle = Math.random() * Math.PI * 2;
+      const dx = Math.cos(angle) * force * 0.4;
+      const dy = (smoothDelta > 0 ? 1 : -1) * force * 0.6 + Math.sin(angle) * force * 0.3;
+
+      // Alternate copper and white
+      const copper = [0.35 + Math.random() * 0.1, 0.18 + Math.random() * 0.05, 0.05];
+      const white  = [0.28 + Math.random() * 0.08, 0.28 + Math.random() * 0.08, 0.28 + Math.random() * 0.08];
+      splat(x, y, dx, dy, Math.random() > 0.45 ? copper : white);
+    }
+  }
+
+  // ── SUBTLE IDLE DRIFT — barely noticeable when not scrolling ──
+  if (scrollSpeed < 0.3 && Math.random() < 0.008) {
+    const x = 0.2 + Math.random() * 0.6;
+    const y = 0.2 + Math.random() * 0.6;
+    const dx = (Math.random() - 0.5) * 15;
+    const dy = (Math.random() - 0.5) * 12;
+    const copper = [0.12, 0.06, 0.015];
+    const white  = [0.10, 0.10, 0.10];
+    splat(x, y, dx, dy, Math.random() > 0.5 ? copper : white);
+  }
+
+  // ── FLUID SIMULATION STEPS ──
+  const simTexel = [1.0 / simW, 1.0 / simH];
+  const dyeTexel = [1.0 / dyeW, 1.0 / dyeH];
+
+  // 1. Curl (vorticity calculation)
+  let u = useProg(curlProg);
+  gl.uniform2f(u.texelSize, simTexel[0], simTexel[1]);
+  gl.uniform1i(u.uVelocity, velocity.read.attach(0));
+  blit(curl);
+
+  // 2. Vorticity confinement
+  u = useProg(vorticityProg);
+  gl.uniform2f(u.texelSize, simTexel[0], simTexel[1]);
+  gl.uniform1i(u.uVelocity, velocity.read.attach(0));
+  gl.uniform1i(u.uCurl, curl.attach(1));
+  gl.uniform1f(u.curl, CURL_STRENGTH);
+  gl.uniform1f(u.dt, dt);
+  blit(velocity.write);
+  velocity.swap();
+
+  // 3. Velocity advection
+  u = useProg(advectionProg);
+  gl.uniform2f(u.texelSize, simTexel[0], simTexel[1]);
+  gl.uniform1i(u.uVelocity, velocity.read.attach(0));
+  gl.uniform1i(u.uSource, velocity.read.attach(0));
+  gl.uniform1f(u.dt, dt);
+  gl.uniform1f(u.dissipation, VELOCITY_DISSIPATION);
+  blit(velocity.write);
+  velocity.swap();
+
+  // 4. Dye advection (the visible paint)
+  u = useProg(advectionProg);
+  gl.uniform2f(u.texelSize, dyeTexel[0], dyeTexel[1]);
+  gl.uniform1i(u.uVelocity, velocity.read.attach(0));
+  gl.uniform1i(u.uSource, dye.read.attach(1));
+  gl.uniform1f(u.dt, dt);
+  gl.uniform1f(u.dissipation, DYE_DISSIPATION);
+  blit(dye.write);
+  dye.swap();
+
+  // 5. Divergence
+  u = useProg(divergenceProg);
+  gl.uniform2f(u.texelSize, simTexel[0], simTexel[1]);
+  gl.uniform1i(u.uVelocity, velocity.read.attach(0));
+  blit(divergence);
+
+  // 6. Clear pressure
+  u = useProg(clearProg);
+  gl.uniform1i(u.uTexture, pressure.read.attach(0));
+  gl.uniform1f(u.value, 0.8);
+  blit(pressure.write);
+  pressure.swap();
+
+  // 7. Jacobi pressure solve
+  u = useProg(pressureProg);
+  gl.uniform2f(u.texelSize, simTexel[0], simTexel[1]);
+  gl.uniform1i(u.uDivergence, divergence.attach(1));
+  for (let i = 0; i < PRESSURE_ITERS; i++) {
+    gl.uniform1i(u.uPressure, pressure.read.attach(0));
+    blit(pressure.write);
+    pressure.swap();
+  }
+
+  // 8. Gradient subtraction
+  u = useProg(gradientProg);
+  gl.uniform2f(u.texelSize, simTexel[0], simTexel[1]);
+  gl.uniform1i(u.uPressure, pressure.read.attach(0));
+  gl.uniform1i(u.uVelocity, velocity.read.attach(1));
+  blit(velocity.write);
+  velocity.swap();
+
+  // ── RENDER TO SCREEN ──
+  u = useProg(displayProg);
+  gl.uniform1i(u.uTexture, dye.read.attach(0));
+  blit(null);
+}
+
+// ── Boot ──
+resize();
+window.addEventListener('resize', resize);
+requestAnimationFrame(step);
+</script>
+</body>
+</html>
