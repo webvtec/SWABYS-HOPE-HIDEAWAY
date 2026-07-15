@@ -734,7 +734,7 @@
     .intro-text .section-eyebrow { justify-content: center; }
     .intro-text .section-title { font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl)); margin-bottom: var(--space-lg); color: var(--text-primary); font-weight: 400; }
     .intro-body {
-      color: var(--text-secondary);
+      color: #000000;
       font-family: var(--font-accent);
       font-size: clamp(var(--text-lg), 2vw, var(--text-xl));
       line-height: 1.9; margin-bottom: var(--space-2xl);
@@ -1139,7 +1139,7 @@
       </div>
       <div class="hero-content">
         <h1 class="hero-tagline reveal">Use Our <em>Hideaway</em><br/>for Your Getaway</h1>
-        <p class="hero-description reveal" style="transition-delay:0.15s;">An intimate boutique retreat perched in Jamaica's cool, tranquil hills where warmth, elegance, and panoramic beauty meet.</p>
+        <p class="hero-description reveal" style="transition-delay:0.15s;color:#FFFFFF;">An intimate boutique retreat perched in Jamaica's cool, tranquil hills where warmth, elegance, and panoramic beauty meet.</p>
         <div class="hero-actions reveal" style="transition-delay:0.3s;">
           <button class="btn-hero-solid" onclick="navigateTo('rooms')">
             Explore Accommodation
@@ -1163,18 +1163,15 @@
           <!-- Loaded dynamically from Firebase -->
           <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);font-style:italic;">Loading features...</div>
         </div>
-      </div>
-    </section>
-
-    <!-- ACCENT BANNER -->
-    <section class="accent-banner">
-      <div class="container">
-        <div class="accent-banner-inner">
-          <div class="accent-banner-text reveal reveal-left">
+        <!-- CTA below images -->
+        <div class="accent-banner-inner reveal" style="margin-top:var(--space-3xl);padding-top:var(--space-2xl);border-top:1px solid rgba(184,115,51,0.15);">
+          <div class="accent-banner-text">
             <h3>Ready to Escape the Ordinary?</h3>
             <p>Limited rooms available — each stay is as unique as you are.</p>
           </div>
-          <button class="btn-white reveal reveal-right" onclick="navigateTo('rooms')">View Accommodation</button>
+          <button class="btn-primary reveal reveal-right" onclick="navigateTo('rooms')">View Accommodation
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
         </div>
       </div>
     </section>
