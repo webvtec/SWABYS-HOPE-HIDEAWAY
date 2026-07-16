@@ -1000,7 +1000,9 @@
       .form-row { grid-template-columns: 1fr; }
       .footer-grid { grid-template-columns: 1fr; }
       .sticky-cta { display: block; }
-      .accent-banner-inner { flex-direction: column; text-align: center; }
+      .accent-banner-inner:not(.escape-banner) { flex-direction: column; text-align: center; }
+      .escape-banner { flex-direction: column !important; align-items: flex-start !important; }
+      .escape-btn-wrap { flex-wrap: nowrap !important; display: flex !important; }
     }
     @media (max-width: 480px) {
       .hero-tagline { font-size: 2rem; }
@@ -1112,7 +1114,16 @@
 
     /* ═══ ESCAPE BANNER WIPE + BUTTON GLOW ═══ */
     .escape-banner {
-      overflow: hidden;
+      overflow: visible;
+      flex-wrap: wrap !important;
+      flex-direction: row !important;
+      align-items: center !important;
+    }
+    .escape-btn-wrap {
+      flex-shrink: 0;
+    }
+    .escape-btn-wrap button {
+      white-space: nowrap;
     }
 
     /* text wipes in from left */
@@ -1135,6 +1146,7 @@
 
     /* solid copper button */
     .btn-escape-solid {
+      flex-shrink: 0;
       display: inline-flex;
       align-items: center;
       gap: 10px;
@@ -1221,6 +1233,18 @@
     }
     .btn-escape-solid:hover svg {
       transform: translateX(5px);
+    }
+
+    @media (max-width: 600px) {
+      .btn-escape-solid {
+        padding: 11px 14px;
+        font-size: 0.65rem;
+        letter-spacing: 0.04em;
+        gap: 6px;
+      }
+      .escape-banner {
+        gap: 0.75rem !important;
+      }
     }
     /* ═══ END ESCAPE BANNER ═══ */
   </style>
@@ -1339,7 +1363,7 @@
             <h3>Ready to Escape the Ordinary?</h3>
             
           </div>
-          <div class="escape-btn-wrap" style="display:flex;gap:1rem;flex-wrap:wrap;">
+          <div class="escape-btn-wrap" style="display:flex;gap:0.75rem;flex-wrap:nowrap;">
             <button class="btn-escape-solid btn-pulse-1" onclick="navigateTo('rooms')">Book a Room
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
