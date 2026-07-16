@@ -283,7 +283,7 @@
     .reveal {
       opacity: 0;
       transform: translateY(40px);
-      transition: opacity 0.7s var(--ease-out), transform 0.7s var(--ease-out);
+      transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
     }
     .reveal.reveal-left {
       transform: translateX(-50px);
@@ -303,7 +303,7 @@
     .reveal-stagger > * {
       opacity: 0;
       transform: translateY(30px);
-      transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+      transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);
     }
     .reveal-stagger.in-view > *:nth-child(1) { opacity:1; transform:none; transition-delay:0s; }
     .reveal-stagger.in-view > *:nth-child(2) { opacity:1; transform:none; transition-delay:0.12s; }
@@ -855,11 +855,11 @@
     .page-hero { position: relative; height: 100vh; min-height: 600px; display: flex; align-items: flex-end; overflow: hidden; }
     .page-hero-bg { position: absolute; inset: 0; }
     .page-hero-bg img { width: 100%; height: 100%; object-fit: cover; }
-    .page-hero-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(30,33,40,0.45) 0%, rgba(30,33,40,0.88) 100%), linear-gradient(90deg, rgba(30,33,40,0.3) 0%, transparent 50%); }
+    .page-hero-bg::after { display: none; }
     .page-hero-content { position: relative; z-index: 2; width: 100%; max-width: var(--max-width); margin: 0 auto; padding: 0 var(--space-xl) var(--space-3xl); }
-    .page-hero-content .section-eyebrow { color: var(--copper-shine); }
-    .page-hero-content .section-title { font-size: clamp(var(--text-4xl), 5vw, var(--text-6xl)); color: var(--lux-white); margin-bottom: var(--space-sm); }
-    .page-hero-content .section-subtitle { color: rgba(232,226,216,0.65); }
+    .page-hero-content .section-eyebrow { color: var(--copper-shine); text-shadow: 0 1px 8px rgba(0,0,0,0.6); }
+    .page-hero-content .section-title { font-size: clamp(var(--text-4xl), 5vw, var(--text-6xl)); color: var(--lux-white); margin-bottom: var(--space-sm); text-shadow: 0 2px 16px rgba(0,0,0,0.7); }
+    .page-hero-content .section-subtitle { color: rgba(232,226,216,0.9); text-shadow: 0 1px 10px rgba(0,0,0,0.65); }
 
     /* ═══════════════════════════════════════════
        ROOMS SECTION — Lux white
@@ -1002,7 +1002,7 @@
       .sticky-cta { display: block; }
       .accent-banner-inner:not(.escape-banner) { flex-direction: column; text-align: center; }
       .escape-banner { flex-direction: column !important; align-items: flex-start !important; }
-      .escape-btn-wrap { flex-wrap: nowrap !important; display: flex !important; }
+      .escape-btn-wrap { flex-wrap: wrap !important; display: flex !important; gap: 0.5rem !important; }
     }
     @media (max-width: 480px) {
       .hero-tagline { font-size: 2rem; }
@@ -1120,7 +1120,8 @@
       align-items: center !important;
     }
     .escape-btn-wrap {
-      flex-shrink: 0;
+      flex-shrink: 1;
+      min-width: 0;
     }
     .escape-btn-wrap button {
       white-space: nowrap;
@@ -1146,18 +1147,21 @@
 
     /* solid copper button */
     .btn-escape-solid {
-      flex-shrink: 0;
+      flex-shrink: 1;
+      min-width: 0;
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       gap: 10px;
-      padding: 40px 100px;
+      padding: clamp(12px, 2.5vw, 20px) clamp(20px, 4vw, 48px);
       background: linear-gradient(135deg, var(--copper-shine) 0%, var(--copper) 50%, var(--copper-deep) 100%);
       color: var(--lux-white);
       font-family: var(--font-body);
-      font-size: var(--text-2xl);
+      font-size: clamp(0.75rem, 1.5vw, var(--text-base));
       font-weight: 700;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       text-transform: uppercase;
+      white-space: nowrap;
       border: none;
       border-radius: var(--radius-sm);
       cursor: pointer;
@@ -1237,10 +1241,14 @@
 
     @media (max-width: 600px) {
       .btn-escape-solid {
-        padding: 18px 28px;
-        font-size: 0.85rem;
+        flex: 1 1 auto;
+        padding: 12px 16px;
+        font-size: 0.75rem;
         letter-spacing: 0.06em;
-        gap: 8px;
+        gap: 6px;
+      }
+      .escape-btn-wrap {
+        width: 100%;
       }
       .escape-banner {
         gap: 0.75rem !important;
@@ -1363,7 +1371,7 @@
             <h3>Ready to Escape the Ordinary?</h3>
             
           </div>
-          <div class="escape-btn-wrap" style="display:flex;gap:0.75rem;flex-wrap:nowrap;">
+          <div class="escape-btn-wrap" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
             <button class="btn-escape-solid btn-pulse-1" onclick="navigateTo('rooms')">Book a Room
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
@@ -1527,7 +1535,7 @@
           e.target.classList.add('in-view');
         }
       });
-    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    }, { threshold: 0.05, rootMargin: '0px 0px 0px 0px' });
 
     function initReveal() {
       document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => {
@@ -1584,7 +1592,7 @@
         const calId = `cal-${room.id}`, calTitleId = `cal-title-${room.id}`;
         const quantityLabel = room.quantity > 1 ? `<span style="font-size:var(--text-xs);color:var(--text-muted);font-weight:400;margin-left:8px;">(${room.quantity} available)</span>` : '';
         return `
-          <div class="room-card reveal">
+          <div class="room-card">
             <div class="room-card-image">
               <img src="${room.imageUrl || ''}" alt="${room.name} at Swaby's Hope Hideaway" loading="lazy" />
               <div class="room-card-badge">${room.badge || ''}</div>
@@ -1605,7 +1613,6 @@
 
       window._calState = {};
       rooms.forEach(r => { window._calState[r.id] = { month: currentMonth, year: currentYear }; });
-      document.querySelectorAll('#roomsGrid .reveal').forEach(el => revealObs.observe(el));
     }
 
     function changeCalMonth(roomId, delta) {
@@ -1630,6 +1637,14 @@
       document.querySelectorAll('.nav-link[data-page]').forEach(link => link.classList.toggle('active', link.dataset.page === page));
       window.scrollTo({ top: 0, behavior: 'smooth' });
       if (page === 'rooms' && !window._roomsRendered && window._roomsData && window._roomsData.length > 0) { renderRooms(); window._roomsRendered = true; }
+      if (page === 'events') {
+        setTimeout(() => {
+          const eventsPage = document.getElementById('page-events');
+          if (eventsPage) {
+            eventsPage.querySelectorAll('.reveal, .reveal-stagger').forEach(el => el.classList.add('in-view'));
+          }
+        }, 50);
+      }
       setTimeout(initReveal, 100);
       // Open sub-nav and sync active link
       document.getElementById('subNav').classList.add('open');
