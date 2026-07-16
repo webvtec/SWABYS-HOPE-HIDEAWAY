@@ -1371,7 +1371,7 @@ async function loadRooms() {
       <div class="item-card-img">${r.imageUrl ? `<img src="${r.imageUrl}" />` : '<div class="no-img">No image</div>'}</div>
       <div class="item-card-body">
         <div class="item-card-title">${r.name}</div>
-        <div class="item-card-meta">$${r.price}/night &middot; ${r.badge || ''} &middot; ${r.quantity || 1} available${Array.isArray(r.amenities) && r.amenities.length ? '<br><span style="font-size:1rem;letter-spacing:2px;">' + r.amenities.map(k => { const found = [{ key:'wifi',emoji:'📶'},{ key:'tv',emoji:'📺'},{ key:'hotwater',emoji:'🚿'},{ key:'security',emoji:'🔒'},{ key:'breakfast',emoji:'🍳'},{ key:'ac',emoji:'❄️'},{ key:'minibar',emoji:'🍹'},{ key:'balcony',emoji:'🌄'},{ key:'pool',emoji:'🏊'},{ key:'parking',emoji:'🅿️'},{ key:'kitchenette',emoji:'🍽️'},{ key:'safe',emoji:'🔐'},{ key:'jacuzzi',emoji:'🛁'},{ key:'ocean',emoji:'⛰️'},{ key:'laundry',emoji:'👕'}].find(a=>a.key===k); return found ? found.emoji : ''; }).join(' ') + '</span>' : ''}</div>
+        <div class="item-card-meta">$${r.price}/night &middot; ${r.badge || ''} &middot; ${r.quantity || 1} available${Array.isArray(r.amenities) && r.amenities.length ? '<br><span style="display:inline-flex;gap:6px;margin-top:4px;flex-wrap:wrap;">' + r.amenities.map(k => { const found = ROOM_AMENITIES.find(a=>a.key===k); return found ? `<span style="color:var(--copper-shine);" title="${found.label}">${found.icon}</span>` : ''; }).join('') + '</span>' : ''}</div>
       </div>
       <div class="item-card-actions">
         <button class="btn btn-outline btn-sm" onclick="openRoomModal('${r.id}')">Edit</button>
@@ -1381,29 +1381,29 @@ async function loadRooms() {
 }
 
 const ROOM_AMENITIES = [
-  { key: 'wifi',        label: 'Free Wi-Fi',       emoji: '📶' },
-  { key: 'tv',          label: 'Smart TV',          emoji: '📺' },
-  { key: 'hotwater',    label: 'Hot Water',         emoji: '🚿' },
-  { key: 'security',    label: '24hr Security',     emoji: '🔒' },
-  { key: 'breakfast',   label: 'Breakfast',         emoji: '🍳' },
-  { key: 'ac',          label: 'Air Conditioning',  emoji: '❄️' },
-  { key: 'minibar',     label: 'Mini Bar',          emoji: '🍹' },
-  { key: 'balcony',     label: 'Private Balcony',   emoji: '🌄' },
-  { key: 'pool',        label: 'Pool Access',       emoji: '🏊' },
-  { key: 'parking',     label: 'Free Parking',      emoji: '🅿️' },
-  { key: 'kitchenette', label: 'Kitchenette',       emoji: '🍽️' },
-  { key: 'safe',        label: 'In-Room Safe',      emoji: '🔐' },
-  { key: 'jacuzzi',     label: 'Jacuzzi',           emoji: '🛁' },
-  { key: 'ocean',       label: 'Mountain View',     emoji: '⛰️' },
-  { key: 'laundry',     label: 'Laundry Service',   emoji: '👕' },
+  { key: 'wifi',        label: 'Free Wi-Fi',       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M5 12.55a11 11 0 0114.08 0"/><path d="M1.42 9a16 16 0 0121.16 0"/><path d="M8.53 16.11a6 6 0 016.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>' },
+  { key: 'tv',          label: 'Smart TV',          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>' },
+  { key: 'hotwater',    label: 'Hot Water',         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M12 2c-5.33 4-8 7.33-8 10a8 8 0 0016 0c0-2.67-2.67-6-8-10z"/></svg>' },
+  { key: 'security',    label: '24hr Security',     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' },
+  { key: 'breakfast',   label: 'Breakfast',         icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M18 8h1a4 4 0 010 8h-1"/><path d="M2 8h16v9a4 4 0 01-4 4H6a4 4 0 01-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>' },
+  { key: 'ac',          label: 'Air Conditioning',  icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><rect x="2" y="3" width="20" height="8" rx="2"/><path d="M7 11v8m5-8v8m5-8v8"/><path d="M5 19h14"/></svg>' },
+  { key: 'minibar',     label: 'Mini Bar',          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M8 2h8l1 8H7L8 2z"/><path d="M7 10l-2 11h14L17 10"/><line x1="12" y1="10" x2="12" y2="21"/></svg>' },
+  { key: 'balcony',     label: 'Private Balcony',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>' },
+  { key: 'pool',        label: 'Pool Access',       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M2 12h20M2 18c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/><circle cx="7" cy="7" r="3"/><path d="M10 7h4"/></svg>' },
+  { key: 'parking',     label: 'Free Parking',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 17V7h4a3 3 0 010 6H9"/></svg>' },
+  { key: 'kitchenette', label: 'Kitchenette',       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M3 3h18v5H3z"/><path d="M3 8v13h18V8"/><path d="M9 8v13M15 8v13"/></svg>' },
+  { key: 'safe',        label: 'In-Room Safe',      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M12 9v0M12 15v0M9 12H6M18 12h-3"/></svg>' },
+  { key: 'jacuzzi',     label: 'Jacuzzi',           icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><path d="M4 12h16v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6z"/><path d="M6 12V8a2 2 0 012-2h8a2 2 0 012 2v4"/><path d="M8 6V4M12 6V4M16 6V4"/></svg>' },
+  { key: 'ocean',       label: 'Mountain View',     icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><polygon points="3 20 9 8 15 16 18 11 21 20 3 20"/></svg>' },
+  { key: 'laundry',     label: 'Laundry Service',   icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" width="16" height="16"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="13" r="4"/><line x1="8" y1="7" x2="8.01" y2="7"/></svg>' },
 ];
 
 function amenityCheckboxesHtml(selected = []) {
-  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.5rem;margin-top:0.25rem;">
+  return `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:0.5rem;margin-top:0.25rem;">
     ${ROOM_AMENITIES.map(a => `
       <label style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem 0.625rem;background:rgba(255,255,255,0.03);border:1px solid var(--border-copper);border-radius:5px;cursor:pointer;font-size:0.78rem;color:var(--text-2);transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--copper)'" onmouseout="this.style.borderColor='var(--border-copper)'">
         <input type="checkbox" data-amenity="${a.key}" style="accent-color:var(--copper);width:14px;height:14px;flex-shrink:0;" ${selected.includes(a.key) ? 'checked' : ''} />
-        <span style="font-size:1rem;">${a.emoji}</span>
+        <span style="color:var(--copper-shine);flex-shrink:0;">${a.icon}</span>
         <span>${a.label}</span>
       </label>`).join('')}
   </div>`;
