@@ -775,7 +775,7 @@
        ═══════════════════════════════════════════ */
     .footer {
       background: linear-gradient(160deg, #1E2028 0%, #0E1014 20%, #262930 40%, #0A0C10 58%, #1A1C24 75%, #080A0E 100%);
-      padding: var(--space-4xl) 0 var(--space-xl);
+      padding: var(--space-2xl) 0 var(--space-lg);
       color: var(--grey-silver);
       position: relative;
     }
@@ -790,7 +790,7 @@
       position: relative;
       z-index: 2;
     }
-    .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: var(--space-3xl); margin-bottom: var(--space-3xl); padding-bottom: var(--space-3xl); border-bottom: 1px solid rgba(184,115,51,0.08); }
+    .footer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2xl); margin-bottom: var(--space-xl); padding-bottom: var(--space-xl); border-bottom: 1px solid rgba(184,115,51,0.08); }
     .footer-brand .nav-brand-name { color: var(--lux-white); margin-bottom: var(--space-sm); }
     .footer-brand .nav-brand-sub { color: var(--grey-silver); margin-bottom: var(--space-lg); }
     .footer-brand-desc { font-size: var(--text-sm); line-height: 1.7; color: var(--grey-silver); max-width: 320px; }
@@ -1193,7 +1193,7 @@
             <div class="section-eyebrow reveal">Our Story</div>
             <h2 class="section-title reveal" style="transition-delay:0.1s;">Where the Hills<br/>Whisper Serenity</h2>
             <p class="intro-body reveal" style="transition-delay:0.2s;">
-              Perched above the clouds in Spur Tree, Mandeville, Swaby's Hope Hideaway is more than a hotel — it is a feeling. Cool mountain breezes carry the scent of wild coffee and tropical blooms through every room, while panoramic views of the Manchester hills stretch endlessly before you. Here, Jamaican hospitality isn't performed. It's lived.
+              Perched above the clouds in Spur Tree, Mandeville, Swaby's Hope Hideaway is more than a hotel, it is a feeling. Cool mountain breezes carry the scent of wild coffee and tropical blooms through every room, while panoramic views of the Manchester hills stretch endlessly before you. Here, Jamaican hospitality isn't performed. It's lived.
             </p>
             <div class="intro-stats">
             </div>
@@ -1214,7 +1214,7 @@
       <div class="page-hero-content">
         <div class="section-eyebrow reveal">Accommodation</div>
         <h1 class="section-title reveal" style="transition-delay:0.1s;">Our Boutique Rooms</h1>
-        <p class="section-subtitle reveal" style="transition-delay:0.2s;">Every room tells a story — yours begins with a view of the hills.</p>
+        <p class="section-subtitle reveal" style="transition-delay:0.2s;">Every room tells a story, yours begins with a view of the hills.</p>
       </div>
     </section>
     <section class="rooms-section">
@@ -1252,32 +1252,14 @@
           <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);font-style:italic;">Loading events...</div>
         </div>
 
-        <div class="capacity-banner reveal" id="capacityBanner">
-          <div>
-            <div class="section-eyebrow">Venue Capacity</div>
-            <h3 class="section-title" style="font-size:clamp(var(--text-2xl),3vw,var(--text-4xl));margin-bottom:var(--space-md);color:var(--text-primary);">Built for Gatherings<br/>of Every Scale</h3>
-            <p style="color:var(--text-secondary);line-height:1.7;max-width:440px;font-family:var(--font-accent);font-style:italic;">Our versatile spaces adapt to your vision — whether you're hosting thirty close friends or two hundred guests for the event of a lifetime.</p>
-          </div>
-          <div class="capacity-visual" id="capacityGrid">
-            <!-- Loaded dynamically from Firebase -->
-          </div>
-        </div>
+
       </div>
     </section>
 
     <section class="inquiry-section" id="inquirySection">
       <div class="container">
         <div class="inquiry-grid">
-          <div class="inquiry-info reveal reveal-left">
-            <div class="section-eyebrow">Get in Touch</div>
-            <h2 class="section-title">Plan Your Perfect Event</h2>
-            <p class="inquiry-info-text">Tell us about your vision and our dedicated events team will craft a bespoke proposal tailored to your celebration.</p>
-            <div>
-              <div class="inquiry-contact-item"><div class="inquiry-contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg></div><div><div class="inquiry-contact-label">Phone</div><div class="inquiry-contact-value">(876) 909-4437 / (876) 790-3843</div></div></div>
-              <div class="inquiry-contact-item"><div class="inquiry-contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div><div><div class="inquiry-contact-label">Email</div><div class="inquiry-contact-value">events@swabyshopehotel.com</div></div></div>
-              <div class="inquiry-contact-item"><div class="inquiry-contact-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><div><div class="inquiry-contact-label">Location</div><div class="inquiry-contact-value">Spur Tree, Mandeville, Manchester, Jamaica</div></div></div>
-            </div>
-          </div>
+
           <div class="inquiry-form-card reveal reveal-right">
             <h3 class="inquiry-form-title">Event Inquiry</h3>
             <p class="inquiry-form-subtitle">Fill out the details below and we'll respond within 24 hours.</p>
@@ -1314,21 +1296,6 @@
 
     <div class="container">
       <div class="footer-grid">
-        <div class="footer-brand">
-          <div class="nav-brand">
-            <span class="nav-brand-name">Swaby's Hope Hideaway Ltd</span>
-            <span class="nav-brand-sub">Boutique Hotel · Jamaica</span>
-          </div>
-          <p class="footer-brand-desc" style="margin-top:var(--space-lg);">An intimate retreat perched in the cool hills of Spur Tree, Mandeville. Where warmth, elegance, and nature converge.</p>
-        </div>
-        <div>
-          <h4 class="footer-col-title">Explore</h4>
-          <ul class="footer-links">
-            <li><a href="#" onclick="navigateTo('home')">Home</a></li>
-            <li><a href="#" onclick="navigateTo('rooms')">Accommodation</a></li>
-            <li><a href="#" onclick="navigateTo('events')">Events</a></li>
-          </ul>
-        </div>
         <div>
           <h4 class="footer-col-title">Services</h4>
           <ul class="footer-links">
@@ -1345,8 +1312,6 @@
             <li><a href="tel:+18769094437">(876) 909-4437</a></li>
             <li><a href="tel:+18767903843">(876) 790-3843</a></li>
             <li><a href="mailto:hello@swabyshopehotel.com">hello@swabyshopehotel.com</a></li>
-            <li><a href="#">Spur Tree, Mandeville</a></li>
-            <li><a href="#">Manchester, Jamaica</a></li>
           </ul>
         </div>
       </div>
