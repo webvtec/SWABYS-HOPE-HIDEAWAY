@@ -1610,7 +1610,185 @@
       border-bottom: 1px solid rgba(184,115,51,0.15);
     }
 
-    /* ═══ END ESCAPE BANNER ═══ */
+    /* ═══════════════════════════════════════════
+       REVIEWS PAGE
+       ═══════════════════════════════════════════ */
+
+    /* Hero strip */
+    .reviews-hero {
+      background: linear-gradient(135deg, #0A0806 0%, #120D08 40%, #1A1208 100%);
+      padding: 5rem 2rem 3.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .reviews-hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse 70% 60% at 50% 100%, rgba(184,115,51,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    /* Running glow line along bottom of hero */
+    .reviews-hero::after {
+      content: '';
+      position: absolute; bottom: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, transparent 0%, transparent 15%, rgba(184,115,51,0.1) 22%, rgba(232,168,124,0.9) 35%, rgba(255,220,120,1) 46%, rgba(255,255,200,1) 50%, rgba(255,220,120,1) 54%, rgba(232,168,124,0.9) 65%, rgba(184,115,51,0.1) 78%, transparent 85%, transparent 100%);
+      background-size: 200% 100%;
+      box-shadow: 0 0 4px rgba(255,220,120,1), 0 0 12px rgba(232,168,124,1), 0 0 28px rgba(184,115,51,0.95), 0 0 55px rgba(184,115,51,0.6);
+      animation: subNavGlowRun 3.2s linear infinite;
+    }
+    .reviews-hero-inner { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; }
+    .reviews-eyebrow {
+      font-size: 0.6rem; font-weight: 700; letter-spacing: 0.28em; text-transform: uppercase;
+      color: var(--copper-shine); margin-bottom: 0.75rem;
+    }
+    .reviews-hero-title {
+      font-family: var(--font-display); font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 400; color: var(--lux-white); line-height: 1.15; margin-bottom: 0.875rem;
+      text-shadow: 0 0 40px rgba(184,115,51,0.5);
+    }
+    .reviews-hero-title em { font-style: italic; color: var(--copper-shine); }
+    .reviews-hero-sub {
+      font-size: 0.9rem; color: rgba(232,226,216,0.75); line-height: 1.7; margin-bottom: 2rem;
+    }
+    .btn-leave-review {
+      display: inline-flex; align-items: center; gap: 0.625rem;
+      padding: 0.875rem 2rem;
+      background: linear-gradient(135deg, var(--copper-shine), var(--copper), var(--copper-deep));
+      color: #fff; border: 1px solid rgba(232,168,124,0.3); border-radius: var(--radius-sm);
+      font-family: var(--font-body); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      cursor: pointer;
+      box-shadow: 0 0 24px rgba(184,115,51,0.5), 0 4px 20px rgba(0,0,0,0.4);
+      transition: transform 0.3s var(--ease-out), box-shadow 0.3s;
+    }
+    .btn-leave-review:hover { transform: translateY(-2px); box-shadow: 0 0 48px rgba(184,115,51,0.8), 0 6px 28px rgba(0,0,0,0.4); }
+
+    /* Summary bar */
+    .reviews-summary-bar {
+      background: var(--surface); border-bottom: 1px solid rgba(184,115,51,0.12);
+      padding: 2.25rem 0;
+    }
+    .rsb-inner {
+      display: flex; align-items: center; gap: 3rem;
+      flex-wrap: wrap;
+    }
+    .rsb-score-block { text-align: center; min-width: 120px; }
+    .rsb-score {
+      font-family: var(--font-display); font-size: 4rem; font-weight: 400; line-height: 1;
+      color: var(--copper-shine);
+      text-shadow: 0 0 30px rgba(184,115,51,0.5);
+    }
+    .rsb-stars { font-size: 1.25rem; color: var(--copper-shine); letter-spacing: 2px; margin: 0.25rem 0; }
+    .rsb-count { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.1em; text-transform: uppercase; }
+    .rsb-bars { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 0.5rem; }
+    .rsb-bar-row {
+      display: grid; grid-template-columns: 32px 1fr 28px;
+      align-items: center; gap: 0.625rem;
+      font-size: 0.7rem; color: var(--text-muted);
+    }
+    .rsb-track {
+      height: 6px; background: rgba(184,115,51,0.12); border-radius: 3px; overflow: hidden;
+    }
+    .rsb-fill {
+      height: 100%; width: 0%; background: linear-gradient(90deg, var(--copper), var(--copper-shine));
+      border-radius: 3px; transition: width 0.8s var(--ease-out);
+    }
+
+    /* Reviews grid */
+    .reviews-section { padding: 3rem 0 5rem; }
+    .reviews-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .reviews-empty {
+      grid-column: 1/-1; text-align: center; padding: 4rem 2rem;
+      color: var(--text-muted); font-style: italic;
+    }
+
+    /* Review card */
+    .review-card {
+      background: var(--card);
+      border: 1px solid rgba(184,115,51,0.12);
+      border-radius: var(--radius-lg);
+      padding: 1.625rem;
+      position: relative;
+      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+      animation: reviewCardIn 0.5s var(--ease-out) both;
+    }
+    .review-card:hover {
+      border-color: rgba(184,115,51,0.35);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(184,115,51,0.15);
+    }
+    @keyframes reviewCardIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    /* Quote mark */
+    .review-card::before {
+      content: '\201C';
+      position: absolute; top: 1rem; right: 1.25rem;
+      font-family: var(--font-display); font-size: 4rem; line-height: 1;
+      color: rgba(184,115,51,0.12); pointer-events: none;
+    }
+    .review-card-stars { font-size: 1rem; color: var(--copper-shine); letter-spacing: 2px; margin-bottom: 0.75rem; }
+    .review-card-text {
+      font-family: var(--font-accent); font-style: italic; font-size: 0.975rem;
+      color: var(--text-secondary); line-height: 1.7; margin-bottom: 1.25rem;
+    }
+    .review-card-footer {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding-top: 1rem; border-top: 1px solid rgba(184,115,51,0.1);
+    }
+    .review-card-avatar {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--copper) 0%, var(--copper-deep) 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-body); font-size: 0.75rem; font-weight: 700;
+      color: #fff; letter-spacing: 0.05em;
+    }
+    .review-card-name { font-size: 0.8rem; font-weight: 600; color: var(--text-primary); }
+    .review-card-meta { font-size: 0.7rem; color: var(--text-muted); margin-top: 1px; }
+
+    /* Star picker in modal */
+    .star-picker { display: flex; gap: 0.375rem; margin-top: 0.5rem; }
+    .star-pick {
+      font-size: 2rem; color: rgba(184,115,51,0.2); cursor: pointer;
+      transition: color 0.15s, transform 0.15s;
+    }
+    .star-pick:hover, .star-pick.active { color: var(--copper-shine); transform: scale(1.2); }
+
+    /* Review modal */
+    .review-modal-scrim {
+      position: fixed; inset: 0; z-index: 2000;
+      background: rgba(0,0,0,0.65); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+      display: none; align-items: center; justify-content: center; padding: 1rem;
+    }
+    .review-modal-scrim.open { display: flex; }
+    .review-modal {
+      background: #fff; border-radius: var(--radius-xl);
+      padding: 2.25rem 2rem 2rem; width: 100%; max-width: 540px;
+      max-height: 90vh; overflow-y: auto; position: relative;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.45), 0 0 0 1px rgba(184,115,51,0.15);
+      animation: eventModalIn 0.35s var(--ease-out);
+    }
+    .review-modal-close {
+      position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid rgba(184,115,51,0.25); display: flex; align-items: center; justify-content: center;
+      font-size: 18px; color: var(--text-muted); cursor: pointer; background: none; line-height: 1; transition: all 0.2s;
+    }
+    .review-modal-close:hover { border-color: var(--copper); color: var(--copper); background: rgba(184,115,51,0.06); }
+    .review-modal-title {
+      font-family: var(--font-display); font-size: var(--text-2xl); font-weight: 500;
+      color: var(--text-primary); margin-bottom: 0.25rem;
+    }
+    .review-modal-sub {
+      font-size: var(--text-sm); color: var(--text-muted); margin-bottom: 1.75rem;
+      padding-bottom: 1.25rem; border-bottom: 1px solid rgba(184,115,51,0.15);
+    }
+
+    /* ═══ END REVIEWS ═══ */
   </style>
 </head>
 <body>
@@ -1668,6 +1846,7 @@
         <li><a class="nav-link active" data-page="home" onclick="navigateTo('home')">Home</a></li>
         <li><a class="nav-link" data-page="rooms" onclick="navigateTo('rooms')">Accommodation</a></li>
         <li><a class="nav-link" data-page="events" onclick="navigateTo('events')">Weddings &amp; Events</a></li>
+        <li><a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">Reviews</a></li>
       </ul>
       <a class="nav-location-btn" href="https://maps.app.goo.gl/XLm53uZF4SevR3x88" target="_blank" rel="noopener" aria-label="Get directions">
         <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -1682,6 +1861,8 @@
     <button class="sub-nav-link" id="snRooms" onclick="subNavGo('rooms')">Rooms</button>
     <div class="sub-nav-divider"></div>
     <button class="sub-nav-link" id="snEvents" onclick="subNavGo('events')">Weddings &amp; Events</button>
+    <div class="sub-nav-divider"></div>
+    <button class="sub-nav-link" id="snReviews" onclick="subNavGo('reviews')">Reviews</button>
   </div>
 
   <!-- PAGE 1: HOME -->
@@ -1808,6 +1989,84 @@
       </div>
     </section>
   </div><!-- /page-events -->
+
+  <!-- PAGE 4: REVIEWS -->
+  <div class="page" id="page-reviews">
+
+    <!-- Hero strip -->
+    <div class="reviews-hero">
+      <div class="reviews-hero-inner">
+        <div class="reviews-eyebrow">Guest Experiences</div>
+        <h1 class="reviews-hero-title">What Our Guests Say</h1>
+        <p class="reviews-hero-sub">Real stories from people who've stayed, celebrated, and made memories at Swaby's Hope Hideaway.</p>
+        <button class="btn-leave-review" onclick="openReviewModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Leave a Review
+        </button>
+      </div>
+    </div>
+
+    <!-- Overall rating summary bar -->
+    <div class="reviews-summary-bar">
+      <div class="container">
+        <div class="rsb-inner">
+          <div class="rsb-score-block">
+            <div class="rsb-score" id="rsbScore">—</div>
+            <div class="rsb-stars" id="rsbStars"></div>
+            <div class="rsb-count" id="rsbCount">No reviews yet</div>
+          </div>
+          <div class="rsb-bars" id="rsbBars">
+            <div class="rsb-bar-row"><span>5 ★</span><div class="rsb-track"><div class="rsb-fill" id="rsbFill5"></div></div><span id="rsbN5">0</span></div>
+            <div class="rsb-bar-row"><span>4 ★</span><div class="rsb-track"><div class="rsb-fill" id="rsbFill4"></div></div><span id="rsbN4">0</span></div>
+            <div class="rsb-bar-row"><span>3 ★</span><div class="rsb-track"><div class="rsb-fill" id="rsbFill3"></div></div><span id="rsbN3">0</span></div>
+            <div class="rsb-bar-row"><span>2 ★</span><div class="rsb-track"><div class="rsb-fill" id="rsbFill2"></div></div><span id="rsbN2">0</span></div>
+            <div class="rsb-bar-row"><span>1 ★</span><div class="rsb-track"><div class="rsb-fill" id="rsbFill1"></div></div><span id="rsbN1">0</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reviews grid -->
+    <section class="reviews-section">
+      <div class="container">
+        <div class="reviews-grid" id="reviewsGrid">
+          <div class="reviews-empty">Loading reviews…</div>
+        </div>
+      </div>
+    </section>
+
+  </div><!-- /page-reviews -->
+
+  <!-- REVIEW SUBMIT MODAL -->
+  <div class="review-modal-scrim" id="reviewModalScrim" onclick="if(event.target===this)closeReviewModal()">
+    <div class="review-modal">
+      <button class="review-modal-close" onclick="closeReviewModal()">&#215;</button>
+      <h3 class="review-modal-title">Share Your Experience</h3>
+      <p class="review-modal-sub">Your honest review helps other guests and helps us grow.</p>
+      <div id="reviewFormWrap">
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Your Name <span class="required">*</span></label><input class="form-input" id="rvName" placeholder="e.g. Sarah M." /></div>
+          <div class="form-group"><label class="form-label">Room / Stay Type</label><input class="form-input" id="rvRoom" placeholder="e.g. Spur Tree Suite" /></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Your Rating <span class="required">*</span></label>
+          <div class="star-picker" id="starPicker">
+            <span class="star-pick" data-val="1" onclick="setReviewStar(1)">★</span>
+            <span class="star-pick" data-val="2" onclick="setReviewStar(2)">★</span>
+            <span class="star-pick" data-val="3" onclick="setReviewStar(3)">★</span>
+            <span class="star-pick" data-val="4" onclick="setReviewStar(4)">★</span>
+            <span class="star-pick" data-val="5" onclick="setReviewStar(5)">★</span>
+          </div>
+          <div id="starLabel" style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;"></div>
+        </div>
+        <div class="form-group"><label class="form-label">Your Review <span class="required">*</span></label><textarea class="form-textarea" id="rvText" placeholder="Tell us about your stay — what made it special?" style="min-height:110px;"></textarea></div>
+        <button class="btn-primary form-submit" onclick="submitReview()" style="width:100%;justify-content:center;">
+          Post Review
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- EVENT INQUIRY MODAL -->
   <div class="event-modal-scrim" id="eventInquiryScrim" onclick="if(event.target===this)closeEventInquiryModal()">
@@ -2036,15 +2295,13 @@
       if (page === 'events') {
         setTimeout(() => {
           const eventsPage = document.getElementById('page-events');
-          if (eventsPage) {
-            eventsPage.querySelectorAll('.reveal, .reveal-stagger').forEach(el => el.classList.add('in-view'));
-          }
+          if (eventsPage) eventsPage.querySelectorAll('.reveal, .reveal-stagger').forEach(el => el.classList.add('in-view'));
         }, 50);
       }
+      if (page === 'reviews') loadReviews();
       setTimeout(initReveal, 100);
-      // Open sub-nav and sync active link
       document.getElementById('subNav').classList.add('open');
-      const snMap = { home: 'snHome', rooms: 'snRooms', events: 'snEvents' };
+      const snMap = { home: 'snHome', rooms: 'snRooms', events: 'snEvents', reviews: 'snReviews' };
       document.querySelectorAll('.sub-nav-link').forEach(l => l.classList.remove('active'));
       const snTarget = document.getElementById(snMap[page]);
       if (snTarget) snTarget.classList.add('active');
@@ -2061,11 +2318,127 @@
 
     function subNavGo(page) {
       navigateTo(page);
-      // Update active state on sub-nav links
-      const map = { home: 'snHome', rooms: 'snRooms', events: 'snEvents' };
+      const map = { home: 'snHome', rooms: 'snRooms', events: 'snEvents', reviews: 'snReviews' };
       document.querySelectorAll('.sub-nav-link').forEach(l => l.classList.remove('active'));
       const target = document.getElementById(map[page]);
       if (target) target.classList.add('active');
+    }
+
+    /* ── Reviews ─────────────────────────────── */
+    let _reviewStar = 0;
+
+    function setReviewStar(val) {
+      _reviewStar = val;
+      document.querySelectorAll('.star-pick').forEach((s,i) => s.classList.toggle('active', i < val));
+      const labels = ['','Poor','Fair','Good','Great','Excellent!'];
+      document.getElementById('starLabel').textContent = labels[val] || '';
+    }
+
+    function openReviewModal() {
+      _reviewStar = 0;
+      document.getElementById('reviewModalScrim').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      // Reset form
+      document.getElementById('reviewFormWrap').innerHTML = document.getElementById('reviewFormWrap').innerHTML;
+      document.querySelectorAll('.star-pick').forEach(s => s.classList.remove('active'));
+    }
+    function closeReviewModal() {
+      document.getElementById('reviewModalScrim').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeReviewModal(); closeEventInquiryModal(); } });
+
+    async function submitReview() {
+      const name = (document.getElementById('rvName').value || '').trim();
+      const room = (document.getElementById('rvRoom').value || '').trim();
+      const text = (document.getElementById('rvText').value || '').trim();
+      if (!name) { alert('Please enter your name.'); return; }
+      if (!_reviewStar) { alert('Please select a star rating.'); return; }
+      if (!text) { alert('Please write your review.'); return; }
+      const btn = document.querySelector('#reviewFormWrap .form-submit');
+      btn.disabled = true; btn.textContent = 'Posting…';
+      try {
+        const { db, collection, addDoc, serverTimestamp } = window._fb;
+        await addDoc(collection(db, 'reviews'), {
+          name, room: room || null, text, rating: _reviewStar,
+          approved: true, createdAt: serverTimestamp()
+        });
+        document.getElementById('reviewFormWrap').innerHTML = `
+          <div style="text-align:center;padding:2rem 0;">
+            <div style="width:64px;height:64px;border-radius:50%;background:rgba(184,115,51,0.08);border:1px solid rgba(184,115,51,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 1.25rem;">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#B87333" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h3 style="font-family:var(--font-display);font-size:1.5rem;font-weight:500;margin-bottom:0.5rem;">Thank You, ${name}!</h3>
+            <p style="color:var(--text-muted);line-height:1.7;">Your review has been posted. We truly appreciate you sharing your experience.</p>
+          </div>`;
+        setTimeout(() => { closeReviewModal(); loadReviews(); }, 2500);
+      } catch(e) {
+        btn.disabled = false; btn.textContent = 'Post Review';
+        alert('Something went wrong. Please try again.');
+      }
+    }
+
+    async function loadReviews() {
+      const grid = document.getElementById('reviewsGrid');
+      if (!grid) return;
+      grid.innerHTML = '<div class="reviews-empty">Loading reviews…</div>';
+      try {
+        const { db, collection, getDocs, query, orderBy, where } = window._fb;
+        const snap = await getDocs(query(collection(db, 'reviews'), where('approved','==',true), orderBy('createdAt','desc')));
+        const reviews = [];
+        snap.forEach(d => reviews.push({ id: d.id, ...d.data() }));
+        // Update summary bar
+        updateReviewSummary(reviews);
+        if (reviews.length === 0) {
+          grid.innerHTML = '<div class="reviews-empty">No reviews yet — be the first to share your experience!</div>';
+          return;
+        }
+        const starsHtml = r => '★'.repeat(r) + '<span style="color:rgba(184,115,51,0.2);">' + '★'.repeat(5 - r) + '</span>';
+        const initials = name => name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2);
+        const timeAgo = ts => {
+          if (!ts) return '';
+          const diff = Date.now() - ts.toMillis();
+          const d = Math.floor(diff/86400000);
+          if (d < 1) return 'Today';
+          if (d === 1) return 'Yesterday';
+          if (d < 30) return `${d} days ago`;
+          if (d < 365) return `${Math.floor(d/30)} months ago`;
+          return `${Math.floor(d/365)} years ago`;
+        };
+        grid.innerHTML = reviews.map((r, i) => `
+          <div class="review-card" style="animation-delay:${i * 0.07}s">
+            <div class="review-card-stars">${starsHtml(r.rating)}</div>
+            <p class="review-card-text">${r.text}</p>
+            <div class="review-card-footer">
+              <div class="review-card-avatar">${initials(r.name)}</div>
+              <div>
+                <div class="review-card-name">${r.name}</div>
+                <div class="review-card-meta">${r.room ? r.room + ' · ' : ''}${timeAgo(r.createdAt)}</div>
+              </div>
+            </div>
+          </div>`).join('');
+      } catch(e) {
+        grid.innerHTML = '<div class="reviews-empty">Could not load reviews. Please try again.</div>';
+      }
+    }
+
+    function updateReviewSummary(reviews) {
+      if (!reviews.length) return;
+      const counts = {1:0,2:0,3:0,4:0,5:0};
+      let total = 0;
+      reviews.forEach(r => { counts[r.rating]++; total += r.rating; });
+      const avg = (total / reviews.length).toFixed(1);
+      const filled = n => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n));
+      document.getElementById('rsbScore').textContent = avg;
+      document.getElementById('rsbStars').textContent = filled(avg);
+      document.getElementById('rsbCount').textContent = `${reviews.length} review${reviews.length !== 1 ? 's' : ''}`;
+      [5,4,3,2,1].forEach(s => {
+        const pct = reviews.length ? (counts[s] / reviews.length * 100) : 0;
+        const fill = document.getElementById(`rsbFill${s}`);
+        const num = document.getElementById(`rsbN${s}`);
+        if (fill) setTimeout(() => fill.style.width = pct + '%', 100);
+        if (num) num.textContent = counts[s];
+      });
     }
 
     function scrollToBooking() { navigateTo('rooms'); }
