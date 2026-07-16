@@ -852,7 +852,7 @@
     /* ═══════════════════════════════════════════
        PAGE HERO (inner pages)
        ═══════════════════════════════════════════ */
-    .page-hero { position: relative; height: 55vh; min-height: 400px; display: flex; align-items: flex-end; overflow: hidden; }
+    .page-hero { position: relative; height: 100vh; min-height: 600px; display: flex; align-items: flex-end; overflow: hidden; }
     .page-hero-bg { position: absolute; inset: 0; }
     .page-hero-bg img { width: 100%; height: 100%; object-fit: cover; }
     .page-hero-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(30,33,40,0.45) 0%, rgba(30,33,40,0.88) 100%), linear-gradient(90deg, rgba(30,33,40,0.3) 0%, transparent 50%); }
@@ -1165,6 +1165,7 @@
     .escape-banner.escape-in .btn-escape-solid {
       animation: escapeShineSweep 3s ease-in-out infinite;
     }
+    /* pulse overrides shimmer sweep for the two split buttons */
 
     .btn-escape-solid::before {
       content: '';
@@ -1191,6 +1192,19 @@
       30%  { box-shadow: 0 8px 40px rgba(184,115,51,0.75), 0 0 80px rgba(184,115,51,0.4), 0 0 120px rgba(184,115,51,0.15); transform: translateY(-3px); }
       60%  { box-shadow: 0 4px 24px rgba(184,115,51,0.45), 0 0 48px rgba(184,115,51,0.2); transform: translateY(0); }
       100% { box-shadow: 0 4px 24px rgba(184,115,51,0.45), 0 0 48px rgba(184,115,51,0.2); transform: translateY(0); }
+    }
+
+    @keyframes btnPulse {
+      0%   { box-shadow: 0 4px 16px rgba(184,115,51,0.4), 0 0 32px rgba(184,115,51,0.15); transform: translateY(0) scale(1); }
+      50%  { box-shadow: 0 6px 36px rgba(184,115,51,0.85), 0 0 70px rgba(184,115,51,0.45), 0 0 110px rgba(184,115,51,0.2); transform: translateY(-4px) scale(1.03); }
+      100% { box-shadow: 0 4px 16px rgba(184,115,51,0.4), 0 0 32px rgba(184,115,51,0.15); transform: translateY(0) scale(1); }
+    }
+
+    .escape-banner.escape-in .btn-pulse-1 {
+      animation: escapeShimmer 3s ease-in-out infinite, btnPulse 2.4s ease-in-out infinite;
+    }
+    .escape-banner.escape-in .btn-pulse-2 {
+      animation: escapeShimmer 3s ease-in-out infinite, btnPulse 2.4s ease-in-out 1.2s infinite;
     }
 
     /* wrap */
@@ -1324,10 +1338,13 @@
         <div class="accent-banner-inner escape-banner" id="escapeBanner" style="margin-top:var(--space-3xl);padding-top:var(--space-2xl);border-top:1px solid rgba(184,115,51,0.15);">
           <div class="accent-banner-text escape-text">
             <h3>Ready to Escape the Ordinary?</h3>
-            <p>Limited rooms available — each stay is as unique as you are.</p>
+            
           </div>
-          <div class="escape-btn-wrap">
-            <button class="btn-escape-solid" onclick="navigateTo('rooms')">View Accommodation
+          <div class="escape-btn-wrap" style="display:flex;gap:1rem;flex-wrap:wrap;">
+            <button class="btn-escape-solid btn-pulse-1" onclick="navigateTo('rooms')">Book a Room
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+            <button class="btn-escape-solid btn-pulse-2" onclick="navigateTo('events')">Host an Event
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </button>
           </div>
@@ -1363,9 +1380,8 @@
         <img src="" alt="Boutique hotel room with mountain view" data-slot="rooms_page_hero" />
       </div>
       <div class="page-hero-content">
-        <div class="section-eyebrow reveal">Accommodation</div>
-        <h1 class="section-title reveal" style="transition-delay:0.1s;">Our Boutique Rooms</h1>
-        <p class="section-subtitle reveal" style="transition-delay:0.2s;">Every room tells a story, yours begins with a view of the hills.</p>
+        <h1 class="section-title">Our Luxurious Rooms</h1>
+        <p class="section-subtitle">Every room tells a story, yours begins with a view of the hills.</p>
       </div>
     </section>
     <section class="rooms-section">
@@ -1385,16 +1401,14 @@
         <img src="" alt="Elegant outdoor wedding setup in tropical setting" data-slot="events_page_hero" />
       </div>
       <div class="page-hero-content">
-        <div class="section-eyebrow reveal">Celebrate With Us</div>
-        <h1 class="section-title reveal" style="transition-delay:0.1s;">Weddings &amp; Events</h1>
-        <p class="section-subtitle reveal" style="transition-delay:0.2s;">Where milestone moments meet the magic of Jamaica's hills.</p>
+        <h1 class="section-title">Weddings &amp; Events</h1>
+        <p class="section-subtitle">Where milestone moments meet the magic of Jamaica's hills.</p>
       </div>
     </section>
 
     <section class="events-showcase">
       <div class="container">
         <div class="events-showcase-header reveal">
-          <div class="section-eyebrow">Hosting Capabilities</div>
           <h2 class="section-title">Every Occasion, Elevated</h2>
           <p class="section-subtitle">From intimate vows exchanged at sunset to corporate retreats that inspire — we make it unforgettable.</p>
         </div>
