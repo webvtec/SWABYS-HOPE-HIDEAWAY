@@ -749,17 +749,29 @@
     /* Primary outline copper button */
     .btn-primary {
       display: inline-flex; align-items: center; gap: var(--space-sm);
-      padding: 14px 28px;
-      background: linear-gradient(135deg, #3D1F0A 0%, #2A1506 100%);
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #C17A3A 0%, #A0601E 50%, #8B4E14 100%);
       color: rgba(255,245,235,1);
-      transition: all 0.35s var(--ease-out);
+      font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      border-radius: 50px;
+      border: 1px solid rgba(232,168,124,0.5);
+      box-shadow:
+        0 0 8px rgba(232,168,124,0.9),
+        0 0 20px rgba(184,115,51,0.7),
+        0 0 40px rgba(184,115,51,0.4),
+        inset 0 1px 0 rgba(255,220,160,0.3);
+      transition: all 0.3s var(--ease-out);
       width: auto;
     }
     .btn-primary:hover {
-      background: linear-gradient(135deg, #5A2E0E 0%, #3D1F0A 100%);
-      border-color: rgba(184,115,51,0.7);
+      background: linear-gradient(135deg, #D4893F 0%, #B87333 50%, #A0601E 100%);
+      border-color: rgba(232,168,124,0.8);
       transform: translateY(-2px);
-      box-shadow: 0 0 18px rgba(184,115,51,0.7), 0 0 40px rgba(184,115,51,0.35), inset 0 1px 0 rgba(232,168,124,0.2);
+      box-shadow:
+        0 0 14px rgba(232,168,124,1),
+        0 0 35px rgba(184,115,51,0.9),
+        0 0 65px rgba(184,115,51,0.5),
+        inset 0 1px 0 rgba(255,220,160,0.4);
     }
     .btn-primary svg { transition: transform 0.3s var(--ease-out); }
     .btn-primary:hover svg { transform: translateX(3px); }
@@ -1491,20 +1503,25 @@
     .hpb-btn {
       flex-shrink: 0;
       padding: 8px 16px;
-      background: linear-gradient(135deg, #3D1F0A 0%, #2A1506 100%);
-      border: 1px solid rgba(184,115,51,0.45);
-      border-radius: var(--radius-sm);
+      background: linear-gradient(135deg, #C17A3A 0%, #A0601E 50%, #8B4E14 100%);
+      border: 1px solid rgba(232,168,124,0.5);
+      border-radius: 50px;
       color: rgba(255,245,235,1);
       font-family: var(--font-body);
       font-size: 0.6rem; font-weight: 700;
       letter-spacing: 0.14em; text-transform: uppercase;
       cursor: pointer; white-space: nowrap;
-      box-shadow: 0 0 10px rgba(184,115,51,0.4), 0 0 24px rgba(184,115,51,0.2), inset 0 1px 0 rgba(232,168,124,0.15);
+      box-shadow:
+        0 0 8px rgba(232,168,124,0.9),
+        0 0 20px rgba(184,115,51,0.7),
+        0 0 40px rgba(184,115,51,0.4),
+        inset 0 1px 0 rgba(255,220,160,0.3);
       transition: all 0.25s var(--ease-out);
     }
     .hpb-btn:hover {
-      background: linear-gradient(135deg, #5A2E0E 0%, #3D1F0A 100%);
-      box-shadow: 0 0 18px rgba(184,115,51,0.7), 0 0 40px rgba(184,115,51,0.35), inset 0 1px 0 rgba(232,168,124,0.2);
+      background: linear-gradient(135deg, #D4893F 0%, #B87333 50%, #A0601E 100%);
+      border-color: rgba(232,168,124,0.8);
+      box-shadow: 0 0 14px rgba(232,168,124,1), 0 0 35px rgba(184,115,51,0.9), 0 0 65px rgba(184,115,51,0.5), inset 0 1px 0 rgba(255,220,160,0.4);
       transform: translateY(-1px);
     }
 
