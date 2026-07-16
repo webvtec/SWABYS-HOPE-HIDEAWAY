@@ -638,6 +638,100 @@ a { color: inherit; text-decoration: none; }
 .empty-state::before { content: '— '; color: var(--copper-shine); opacity: 0.5; }
 .empty-state::after  { content: ' —'; color: var(--copper-shine); opacity: 0.5; }
 
+/* ═══ PROMOTIONS ════════════════════════════════════ */
+.promo-type-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0.625rem;
+  margin-bottom: 1rem;
+}
+.promo-type-opt {
+  padding: 0.625rem 1rem; border-radius: 4px;
+  border: 1px solid var(--border-copper);
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-2); text-align: center; cursor: pointer;
+  transition: all 0.2s;
+}
+.promo-type-opt:hover { border-color: var(--copper); color: var(--copper-shine); }
+.promo-type-opt.selected {
+  background: var(--copper-soft);
+  border-color: var(--copper);
+  color: var(--copper-shine);
+  box-shadow: 0 0 0 1px rgba(184,115,51,0.15);
+}
+
+.promo-card {
+  background: var(--card); border: 1px solid var(--border);
+  border-left: 3px solid var(--copper);
+  border-radius: 8px; padding: 1.125rem 1.25rem;
+  margin-bottom: 0.75rem; position: relative;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.promo-card:hover { border-color: var(--border-copper); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+.promo-card.paused { border-left-color: var(--text-dim); opacity: 0.7; }
+.promo-card.expired { border-left-color: var(--text-dim); opacity: 0.5; }
+
+.promo-status-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 20px;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; margin-bottom: 0.625rem;
+}
+.promo-status-badge.live { background: rgba(80,200,120,0.08); color: var(--success); border: 1px solid rgba(80,200,120,0.2); }
+.promo-status-badge.paused { background: var(--copper-faint); color: var(--text-dim); border: 1px solid var(--border-copper); }
+.promo-status-badge.expired { background: transparent; color: var(--text-dim); border: 1px solid var(--border); }
+.promo-status-badge.scheduled { background: var(--warning-soft); color: var(--warning); border: 1px solid rgba(232,160,48,0.2); }
+
+.promo-card-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 1.0625rem; font-weight: 500; color: var(--text);
+  margin-bottom: 0.25rem;
+}
+.promo-card-discount {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.1em;
+  color: var(--copper-shine); text-transform: uppercase; margin-bottom: 0.375rem;
+}
+.promo-card-desc { font-size: 0.8rem; color: var(--text-2); line-height: 1.5; margin-bottom: 0.5rem; }
+.promo-card-dates { font-size: 0.7rem; color: var(--text-dim); margin-bottom: 0.75rem; }
+.promo-card-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.section-divider {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin: 1.75rem 0 1.25rem;
+  font-size: 0.6rem; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--copper-shine);
+}
+.section-divider::before, .section-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(184,115,51,0.25));
+}
+.section-divider::after { background: linear-gradient(90deg, rgba(184,115,51,0.25), transparent); }
+
+.toggle-row {
+  display: flex; align-items: center; gap: 0.875rem;
+  background: var(--copper-faint); border: 1px solid var(--border-copper);
+  border-radius: 6px; padding: 0.875rem 1rem; margin-bottom: 1rem;
+}
+.toggle-switch {
+  position: relative; display: inline-block;
+  width: 40px; height: 22px; flex-shrink: 0;
+}
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider {
+  position: absolute; inset: 0; cursor: pointer;
+  background: var(--surface-2); border-radius: 22px;
+  border: 1px solid var(--border-copper);
+  transition: background 0.3s, border-color 0.3s;
+}
+.toggle-slider::before {
+  content: ''; position: absolute;
+  height: 14px; width: 14px; border-radius: 50%;
+  left: 3px; bottom: 3px; background: var(--text-dim);
+  transition: transform 0.3s, background 0.3s;
+}
+.toggle-switch input:checked + .toggle-slider { background: var(--copper-soft); border-color: var(--copper); }
+.toggle-switch input:checked + .toggle-slider::before { transform: translateX(18px); background: var(--copper-shine); }
+
 /* ═══ MULTI-IMAGE GALLERY ══════════════════════════ */
 .multi-img-list {
   display: flex; flex-direction: column; gap: 0.625rem;
@@ -720,6 +814,7 @@ a { color: inherit; text-decoration: none; }
 
   <div class="drawer-section-label">Operations</div>
   <button class="nav-link active" onclick="switchTab('bookings');closeDrawer()">Bookings</button>
+  <button class="nav-link" onclick="switchTab('promotions');closeDrawer()">Promotions</button>
 
   <div class="drawer-divider"></div>
   <div class="drawer-section-label">Content</div>
@@ -874,6 +969,76 @@ a { color: inherit; text-decoration: none; }
       <div id="bookingsEmpty" class="empty-state" style="display:none;">No bookings yet</div>
     </div>
 
+    <!-- PROMOTIONS -->
+    <div class="dash-section" id="tab-promotions">
+      <div class="section-header">
+        <div>
+          <div class="section-eyebrow">Marketing</div>
+          <h2 class="section-title">Promotions</h2>
+        </div>
+      </div>
+
+      <!-- Create Promo Form -->
+      <div style="max-width:640px;">
+        <div style="background:var(--card);border:1px solid var(--border-copper);border-radius:10px;padding:1.75rem;">
+          <div class="section-divider">Create New Promotion</div>
+
+          <div class="form-group">
+            <label class="form-label">Promotion Title</label>
+            <input class="form-input" id="promoTitle" placeholder="e.g. SUMMER ESCAPE DEAL" style="text-transform:uppercase;letter-spacing:0.08em;" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Description — shown on the banner</label>
+            <textarea class="form-textarea" id="promoDesc" placeholder="e.g. Book any room this weekend and get 15% off your stay. Use code at checkout."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Discount Type</label>
+            <div class="promo-type-row">
+              <div class="promo-type-opt selected" id="promoTypePercent" onclick="setPromoDiscountType('percent')">% Percentage Off</div>
+              <div class="promo-type-opt" id="promoTypeFixed" onclick="setPromoDiscountType('fixed')">$ Fixed Amount Off</div>
+            </div>
+            <input type="hidden" id="promoDiscountType" value="percent" />
+            <label class="form-label" id="promoDiscountLabel">Discount Percentage (%)</label>
+            <input type="number" class="form-input" id="promoDiscountValue" placeholder="e.g. 15" min="1" />
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Start Date (optional)</label>
+              <input type="date" class="form-input" id="promoStartDate" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">End Date (optional)</label>
+              <input type="date" class="form-input" id="promoEndDate" />
+            </div>
+          </div>
+
+          <div class="toggle-row">
+            <label class="toggle-switch">
+              <input type="checkbox" id="promoShowBookBtn" checked />
+              <span class="toggle-slider"></span>
+            </label>
+            <div>
+              <div style="font-size:0.75rem;font-weight:600;color:var(--text);margin-bottom:2px;">Show "Book Now" button on banner</div>
+              <div style="font-size:0.7rem;color:var(--text-dim);">Guests can tap it to go straight to the booking form</div>
+            </div>
+          </div>
+
+          <button class="btn btn-copper" style="width:100%;justify-content:center;padding:0.75rem;" onclick="createPromotion()">Post Promotion</button>
+          <p id="promoFormMsg" style="text-align:center;font-style:italic;font-family:'Cormorant Garamond',serif;font-size:0.875rem;margin-top:0.75rem;display:none;"></p>
+        </div>
+
+        <!-- Active Promotions List -->
+        <div style="margin-top:2rem;">
+          <div class="section-divider">Your Promotions</div>
+          <div id="promoAdminList">
+            <div class="empty-state">Loading promotions…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -911,6 +1076,7 @@ const TAB_LABELS = {
   events: 'Events',
   capacity: 'Capacity Stats',
   pageimages: 'Page Images',
+  promotions: 'Promotions',
   bookings: 'Bookings'
 };
 
@@ -1378,6 +1544,125 @@ async function loadBookings() {
   } catch(e) { console.warn('Bookings error:', e); }
 }
 
+/* ── Promotions ─────────────────────────── */
+function setPromoDiscountType(type) {
+  document.getElementById('promoDiscountType').value = type;
+  const lbl = document.getElementById('promoDiscountLabel');
+  const inp = document.getElementById('promoDiscountValue');
+  if (type === 'percent') {
+    lbl.textContent = 'Discount Percentage (%)';
+    inp.placeholder = 'e.g. 15'; inp.max = 100;
+    document.getElementById('promoTypePercent').classList.add('selected');
+    document.getElementById('promoTypeFixed').classList.remove('selected');
+  } else {
+    lbl.textContent = 'Fixed Amount Off (USD $)';
+    inp.placeholder = 'e.g. 50'; inp.removeAttribute('max');
+    document.getElementById('promoTypeFixed').classList.add('selected');
+    document.getElementById('promoTypePercent').classList.remove('selected');
+  }
+}
+
+async function createPromotion() {
+  const title = (document.getElementById('promoTitle').value || '').trim().toUpperCase();
+  const description = (document.getElementById('promoDesc').value || '').trim();
+  const discountType = document.getElementById('promoDiscountType').value;
+  const discountValue = parseFloat(document.getElementById('promoDiscountValue').value);
+  const startDate = document.getElementById('promoStartDate').value || null;
+  const endDate = document.getElementById('promoEndDate').value || null;
+  const showBookBtn = document.getElementById('promoShowBookBtn').checked;
+  const msgEl = document.getElementById('promoFormMsg');
+  msgEl.style.display = 'none';
+
+  if (!title) { msgEl.textContent = 'Please enter a promotion title.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+  if (!description) { msgEl.textContent = 'Please enter a description.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+  if (!discountValue || discountValue <= 0) { msgEl.textContent = 'Please enter a valid discount value.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+  if (endDate && startDate && endDate < startDate) { msgEl.textContent = 'End date must be after start date.'; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block'; return; }
+
+  const { db, collection, addDoc, serverTimestamp } = window._fb;
+  try {
+    await addDoc(collection(db, 'promotions'), {
+      title, description, discountType, discountValue, startDate, endDate, showBookBtn, active: true,
+      createdAt: serverTimestamp()
+    });
+    // Reset form
+    document.getElementById('promoTitle').value = '';
+    document.getElementById('promoDesc').value = '';
+    document.getElementById('promoDiscountValue').value = '';
+    document.getElementById('promoStartDate').value = '';
+    document.getElementById('promoEndDate').value = '';
+    document.getElementById('promoShowBookBtn').checked = true;
+    setPromoDiscountType('percent');
+    msgEl.textContent = '✓ Promotion is now live on the site.';
+    msgEl.style.color = 'var(--success)'; msgEl.style.display = 'block';
+    setTimeout(() => { msgEl.style.display = 'none'; }, 4000);
+    showToast('Promotion posted!');
+    loadPromotionsAdmin();
+  } catch(e) {
+    msgEl.textContent = 'Failed: ' + e.message; msgEl.style.color = 'var(--danger)'; msgEl.style.display = 'block';
+  }
+}
+
+async function loadPromotionsAdmin() {
+  const container = document.getElementById('promoAdminList');
+  if (!container) return;
+  const { db, collection, getDocs, query, orderBy } = window._fb;
+  try {
+    const snap = await getDocs(query(collection(db, 'promotions'), orderBy('createdAt', 'desc')));
+    if (snap.empty) {
+      container.innerHTML = '<div class="empty-state">No promotions yet</div>'; return;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    container.innerHTML = '';
+    snap.forEach(docSnap => {
+      const p = docSnap.data(); const id = docSnap.id;
+      const discountLabel = p.discountType === 'percent'
+        ? p.discountValue + '% OFF'
+        : '$' + Number(p.discountValue).toLocaleString() + ' OFF';
+      const isExpired = p.endDate && p.endDate < today;
+      const isUpcoming = p.startDate && p.startDate > today;
+      let statusLabel, statusClass;
+      if (isExpired) { statusLabel = 'Expired'; statusClass = 'expired'; }
+      else if (!p.active) { statusLabel = 'Paused'; statusClass = 'paused'; }
+      else if (isUpcoming) { statusLabel = 'Scheduled'; statusClass = 'scheduled'; }
+      else { statusLabel = 'Live ✦'; statusClass = 'live'; }
+
+      let datesHtml = '';
+      if (p.startDate || p.endDate) {
+        const fmt = s => { const [y,m,d] = s.split('-'); return new Date(y,m-1,d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+        datesHtml = `<div class="promo-card-dates">📅 ${p.startDate ? 'From ' + fmt(p.startDate) : ''} ${p.endDate ? (p.startDate ? '→ ' : 'Until ') + fmt(p.endDate) : ''}</div>`;
+      }
+
+      const div = document.createElement('div');
+      div.className = 'promo-card' + (isExpired ? ' expired' : '') + (!p.active && !isExpired ? ' paused' : '');
+      div.innerHTML = `
+        <span class="promo-status-badge ${statusClass}">${statusLabel}</span>
+        <div class="promo-card-title">${p.title}</div>
+        <div class="promo-card-discount">${discountLabel} · Book Now: ${p.showBookBtn ? 'On' : 'Off'}</div>
+        <div class="promo-card-desc">${p.description}</div>
+        ${datesHtml}
+        <div class="promo-card-actions">
+          <button class="btn btn-outline btn-sm" onclick="togglePromoActive('${id}',${p.active})">${p.active ? 'Pause' : 'Activate'}</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePromotion('${id}')">Delete</button>
+        </div>`;
+      container.appendChild(div);
+    });
+  } catch(e) { container.innerHTML = '<div class="empty-state">Failed to load promotions</div>'; }
+}
+
+async function togglePromoActive(id, currently) {
+  const { db, doc, updateDoc } = window._fb;
+  await updateDoc(doc(db, 'promotions', id), { active: !currently });
+  showToast(currently ? 'Promotion paused.' : 'Promotion activated.');
+  loadPromotionsAdmin();
+}
+
+async function deletePromotion(id) {
+  if (!confirm('Delete this promotion? This cannot be undone.')) return;
+  const { db, doc, deleteDoc } = window._fb;
+  await deleteDoc(doc(db, 'promotions', id));
+  showToast('Promotion deleted.'); loadPromotionsAdmin();
+}
+
 /* ── Page Images: Rooms Hero ─────────────── */
 function previewRoomsHero(input) {
   const file = input.files[0]; if (!file) return;
@@ -1510,6 +1795,7 @@ const _origSwitchTab = switchTab;
 window.switchTab = function(tab) {
   _origSwitchTab(tab);
   if (tab === 'pageimages') { loadRoomsHeroImage(); loadEventsHeroImage(); }
+  if (tab === 'promotions') { loadPromotionsAdmin(); }
 };
 </script>
 </body>

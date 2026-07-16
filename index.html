@@ -103,8 +103,80 @@
           window._roomsRendered = true;
         } catch(e) { console.warn('Rooms load error:', e); window._roomsData = []; }
 
+        // Load promotions banner
+        try {
+          const pSnap = await getDocs(query(collection(db, 'promotions'), orderBy('createdAt', 'desc')));
+          const promos = [];
+          const nowStr = new Date().toISOString().split('T')[0];
+          pSnap.forEach(d => {
+            const p = { id: d.id, ...d.data() };
+            if (!p.active) return;
+            if (p.startDate && p.startDate > nowStr) return;
+            if (p.endDate && p.endDate < nowStr) return;
+            promos.push(p);
+          });
+          renderPromoBanner(promos);
+        } catch(e) { console.warn('Promos load error:', e); }
+
       } catch(e) {
         console.warn('Could not load content:', e);
+      }
+    }
+
+    /* ── Promotions banner ─────────────────── */
+    let _promoTimer = null;
+    let _promoIdx = 0;
+
+    function renderPromoBanner(promos) {
+      const slot = document.getElementById('heroPromoSlot');
+      if (!slot) return;
+      if (_promoTimer) clearInterval(_promoTimer);
+      _promoIdx = 0;
+
+      if (!promos || promos.length === 0) {
+        slot.innerHTML = '';
+        return;
+      }
+
+      const colors = ['hpb-c0','hpb-c1','hpb-c2','hpb-c3','hpb-c4','hpb-c5'];
+      const buildCard = (p, colorClass) => {
+        const discLabel = p.discountType === 'percent'
+          ? p.discountValue + '% OFF'
+          : '$' + Number(p.discountValue).toLocaleString() + ' OFF';
+        const btn = p.showBookBtn
+          ? `<button class="hpb-btn" onclick="navigateTo('rooms')">Book Now</button>`
+          : '';
+        return `<div class="hero-promo-banner ${colorClass}">
+          <div class="hpb-side"></div>
+          <div class="hpb-body">
+            <span class="hpb-icon">🎉</span>
+            <div class="hpb-text">
+              <div class="hpb-title">${p.title} — ${discLabel}</div>
+              <div class="hpb-desc">${p.description}</div>
+            </div>
+            ${btn}
+          </div>
+        </div>`;
+      };
+
+      const dots = promos.length > 1
+        ? `<div class="hpb-dots">${promos.map((_,i) => `<span class="hpb-dot${i===0?' active':''}"></span>`).join('')}</div>`
+        : '';
+
+      slot.innerHTML = `<div class="hero-promo-wrap">
+        <div id="hpbCardSlot">${buildCard(promos[0], colors[0])}</div>
+        ${dots}
+      </div>`;
+      slot.style.fontStyle = 'normal';
+
+      if (promos.length > 1) {
+        const allDots = () => slot.querySelectorAll('.hpb-dot');
+        _promoTimer = setInterval(() => {
+          _promoIdx = (_promoIdx + 1) % promos.length;
+          const card = document.getElementById('hpbCardSlot');
+          if (card) card.innerHTML = buildCard(promos[_promoIdx], colors[_promoIdx % colors.length]);
+          allDots().forEach((d,i) => d.classList.toggle('active', i === _promoIdx));
+        }, 4000);
       }
     }
 
@@ -1318,6 +1390,85 @@
         gap: 0.75rem !important;
       }
     }
+    /* ═══════════════════════════════════════════
+       PROMO BANNER (hero slot)
+       ═══════════════════════════════════════════ */
+    #heroPromoSlot { transition: opacity 0.4s; }
+
+    .hero-promo-banner {
+      display: flex;
+      align-items: stretch;
+      gap: 0;
+      max-width: 520px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.08);
+      animation: promoBannerSlideIn 0.55s var(--ease-out) both;
+    }
+    @keyframes promoBannerSlideIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Color palette — copper-luxury theme */
+    .hpb-c0 { --hpb-bg: #B87333; --hpb-accent: #7A4A1E; }
+    .hpb-c1 { --hpb-bg: #5C6272; --hpb-accent: #363A45; }
+    .hpb-c2 { --hpb-bg: #2563EB; --hpb-accent: #1D4ED8; }
+    .hpb-c3 { --hpb-bg: #059669; --hpb-accent: #047857; }
+    .hpb-c4 { --hpb-bg: #7C3AED; --hpb-accent: #5B21B6; }
+    .hpb-c5 { --hpb-bg: #DC2626; --hpb-accent: #B91C1C; }
+
+    .hpb-side {
+      width: 5px;
+      background: var(--hpb-accent, #7A4A1E);
+      flex-shrink: 0;
+    }
+    .hpb-body {
+      flex: 1;
+      background: var(--hpb-bg, #B87333);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .hpb-icon { font-size: 20px; flex-shrink: 0; line-height: 1; }
+    .hpb-text { flex: 1; min-width: 0; }
+    .hpb-title {
+      font-family: var(--font-body);
+      font-size: 0.625rem; font-weight: 700;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: rgba(255,255,255,0.9); margin-bottom: 3px;
+    }
+    .hpb-desc {
+      font-family: var(--font-accent);
+      font-style: italic; font-size: 0.9375rem;
+      color: rgba(255,255,255,0.95); line-height: 1.35;
+    }
+    .hpb-btn {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      background: rgba(255,255,255,0.18);
+      border: 1px solid rgba(255,255,255,0.35);
+      border-radius: var(--radius-sm);
+      color: #FFF;
+      font-family: var(--font-body);
+      font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.14em; text-transform: uppercase;
+      cursor: pointer; white-space: nowrap;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .hpb-btn:hover { background: rgba(255,255,255,0.28); transform: translateY(-1px); }
+
+    /* Multi-promo: pager dots + auto-scroll */
+    .hero-promo-wrap { display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+    .hpb-dots { display: flex; gap: 5px; padding-left: 2px; }
+    .hpb-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      transition: background 0.3s, transform 0.3s; cursor: pointer;
+    }
+    .hpb-dot.active { background: var(--copper-shine); transform: scale(1.3); }
+
     /* ═══ END ESCAPE BANNER ═══ */
   </style>
 </head>
@@ -1405,7 +1556,7 @@
       </div>
       <div class="hero-content">
         <h1 class="hero-tagline reveal">Use Our <em>Hideaway</em><br/>for Your Getaway</h1>
-        <p class="hero-description reveal" style="transition-delay:0.15s;color:#FFFFFF;">An intimate boutique retreat perched in Jamaica's cool, tranquil hills where warmth, elegance, and panoramic beauty meet.</p>
+        <p class="hero-description reveal" style="transition-delay:0.15s;color:#FFFFFF;" id="heroPromoSlot"></p>
         <div class="hero-actions reveal" style="transition-delay:0.3s;">
           <button class="btn-hero-solid" onclick="navigateTo('rooms')">
             Explore Accommodation
