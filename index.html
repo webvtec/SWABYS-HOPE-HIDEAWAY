@@ -142,6 +142,7 @@
           : '';
         return `<div class="hero-promo-banner">
           <div class="hpb-inner">
+            <div class="hpb-runner"></div>
             <div class="hpb-body">
               <span class="hpb-icon">🎉</span>
               <div class="hpb-text">
@@ -1409,35 +1410,57 @@
       animation: promoBannerSlideIn 0.55s var(--ease-out) both;
     }
 
-    /* Running glow line traces the top edge — exact same as sub-nav */
-    .hpb-inner::before {
-      content: '';
+    /* Glow dot that runs around all 4 edges */
+    .hpb-inner {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+      /* Dim copper border so the dot runs on something visible */
+      outline: 1px solid rgba(184,115,51,0.25);
+    }
+
+    .hpb-runner {
       position: absolute;
-      top: 0; left: 0; right: 0;
+      width: 60px;
       height: 3px;
-      z-index: 10;
       background: linear-gradient(
         90deg,
         transparent 0%,
-        transparent 15%,
-        rgba(184,115,51,0.1) 22%,
+        rgba(184,115,51,0.2) 10%,
         rgba(232,168,124,0.9) 35%,
-        rgba(255,220,120,1) 46%,
-        rgba(255,255,200,1) 50%,
-        rgba(255,220,120,1) 54%,
-        rgba(232,168,124,0.9) 65%,
-        rgba(184,115,51,0.1) 78%,
-        transparent 85%,
+        rgba(255,220,120,1) 50%,
+        rgba(255,255,200,1) 55%,
+        rgba(255,220,120,1) 65%,
+        rgba(232,168,124,0.9) 85%,
         transparent 100%
       );
-      background-size: 200% 100%;
       box-shadow:
         0 0 4px rgba(255,220,120,1),
         0 0 12px rgba(232,168,124,1),
         0 0 28px rgba(184,115,51,0.95),
-        0 0 55px rgba(184,115,51,0.6),
-        0 0 90px rgba(184,115,51,0.3);
-      animation: subNavGlowRun 3.2s linear infinite;
+        0 0 55px rgba(184,115,51,0.5);
+      z-index: 20;
+      pointer-events: none;
+      /* Start at top-left, run: → top → ↓ right → ← bottom → ↑ left → repeat */
+      animation: hpbRun 3.2s linear infinite;
+      transform-origin: center center;
+    }
+
+    @keyframes hpbRun {
+      /* TOP — moving right */
+      0%   { top: 0;    left: -60px;      width: 60px; height: 3px; transform: none; }
+      24%  { top: 0;    left: 100%;       width: 60px; height: 3px; transform: none; }
+      /* RIGHT — moving down */
+      25%  { top: 0;    right: 0; left: auto; width: 3px; height: 0px;  transform: none; }
+      49%  { top: 100%; right: 0; left: auto; width: 3px; height: 60px; transform: none; }
+      /* BOTTOM — moving left */
+      50%  { bottom: 0; top: auto; right: -60px; left: auto; width: 60px; height: 3px; transform: none; }
+      74%  { bottom: 0; top: auto; right: 100%;  left: auto; width: 60px; height: 3px; transform: none; }
+      /* LEFT — moving up */
+      75%  { bottom: 0;    left: 0; right: auto; width: 3px; height: 60px; transform: none; }
+      99%  { bottom: 100%; left: 0; right: auto; width: 3px; height: 0px;  transform: none; }
+      100% { top: 0;    left: -60px;      width: 60px; height: 3px; transform: none; }
     }
     @keyframes promoBannerSlideIn {
       from { opacity: 0; transform: translateY(10px); }
