@@ -28,6 +28,8 @@
     window._fb = { db, storage, auth, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, orderBy, serverTimestamp, ref, uploadBytesResumable, getDownloadURL, deleteObject, signInWithEmailAndPassword, signOut };
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('dashboard').style.display = 'flex';
+      // Start on Bookings tab
+      switchTab('bookings');
       loadAllData();
     });
   </script>
@@ -636,6 +638,58 @@ a { color: inherit; text-decoration: none; }
 .empty-state::before { content: '— '; color: var(--copper-shine); opacity: 0.5; }
 .empty-state::after  { content: ' —'; color: var(--copper-shine); opacity: 0.5; }
 
+/* ═══ MULTI-IMAGE GALLERY ══════════════════════════ */
+.multi-img-list {
+  display: flex; flex-direction: column; gap: 0.625rem;
+  margin-top: 0.75rem;
+}
+.multi-img-item {
+  display: flex; align-items: center; gap: 0.75rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.5rem 0.625rem;
+  transition: border-color 0.2s;
+}
+.multi-img-item:hover { border-color: var(--border-copper); }
+.multi-img-thumb {
+  width: 56px; height: 40px; border-radius: 4px;
+  object-fit: cover; background: #070910; flex-shrink: 0;
+}
+.multi-img-name {
+  flex: 1; font-size: 0.75rem; color: var(--text-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.multi-img-remove {
+  width: 26px; height: 26px; flex-shrink: 0;
+  border-radius: 50%; border: 1px solid rgba(224,80,80,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; color: var(--danger); line-height: 1;
+  transition: all 0.2s;
+}
+.multi-img-remove:hover { background: var(--danger-soft); border-color: var(--danger); }
+
+/* Admin preview slideshow */
+.admin-slide-preview {
+  position: relative; aspect-ratio: 16/10;
+  overflow: hidden; background: #070910; border-radius: 6px;
+}
+.admin-slide-preview img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  opacity: 0; transition: opacity 0.5s ease;
+}
+.admin-slide-preview img.active { opacity: 1; }
+.admin-slide-dots {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  display: flex; gap: 5px;
+}
+.admin-slide-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(255,255,255,0.4); transition: background 0.3s;
+  cursor: pointer; border: none;
+}
+.admin-slide-dot.active { background: var(--copper-shine); }
+
 /* ═══ TOAST ═════════════════════════════════════════ */
 .toast {
   position: fixed; bottom: 1.5rem; right: 1.5rem;
@@ -664,16 +718,16 @@ a { color: inherit; text-decoration: none; }
     <div class="drawer-brand-sub">Hideaway · Admin</div>
   </div>
 
+  <div class="drawer-section-label">Operations</div>
+  <button class="nav-link active" onclick="switchTab('bookings');closeDrawer()">Bookings</button>
+
+  <div class="drawer-divider"></div>
   <div class="drawer-section-label">Content</div>
-  <button class="nav-link active" onclick="switchTab('features');closeDrawer()">Feature Cards</button>
+  <button class="nav-link" onclick="switchTab('features');closeDrawer()">Feature Cards</button>
   <button class="nav-link" onclick="switchTab('rooms');closeDrawer()">Rooms</button>
   <button class="nav-link" onclick="switchTab('events');closeDrawer()">Events &amp; Weddings</button>
   <button class="nav-link" onclick="switchTab('capacity');closeDrawer()">Capacity Stats</button>
   <button class="nav-link" onclick="switchTab('pageimages');closeDrawer()">Page Images</button>
-
-  <div class="drawer-divider"></div>
-  <div class="drawer-section-label">Operations</div>
-  <button class="nav-link" onclick="switchTab('bookings');closeDrawer()">Bookings</button>
 
   <button class="drawer-signout" onclick="handleLogout()">Sign Out</button>
 </nav>
@@ -705,7 +759,7 @@ a { color: inherit; text-decoration: none; }
   <main class="dash-main">
 
     <!-- FEATURES -->
-    <div class="dash-section active" id="tab-features">
+    <div class="dash-section" id="tab-features">
       <div class="section-header">
         <div>
           <div class="section-eyebrow">Homepage</div>
@@ -796,7 +850,7 @@ a { color: inherit; text-decoration: none; }
     </div>
 
     <!-- BOOKINGS -->
-    <div class="dash-section" id="tab-bookings">
+    <div class="dash-section active" id="tab-bookings">
       <div class="section-header">
         <div>
           <div class="section-eyebrow">Reservations</div>
@@ -982,38 +1036,161 @@ async function loadFeatures() {
   const items = []; snap.forEach(d => items.push({ id: d.id, ...d.data() }));
   const el = document.getElementById('featuresList');
   if (items.length === 0) { el.innerHTML = '<div class="empty-state">No features yet</div>'; return; }
-  el.innerHTML = items.map(f => `
+  el.innerHTML = items.map(f => {
+    // Support multiple images: images[] array OR legacy single imageUrl
+    const imgs = Array.isArray(f.images) && f.images.length > 0 ? f.images : (f.imageUrl ? [f.imageUrl] : []);
+    let imgHtml;
+    if (imgs.length === 0) {
+      imgHtml = '<div class="no-img">No image</div>';
+    } else if (imgs.length === 1) {
+      imgHtml = `<img src="${imgs[0]}" />`;
+    } else {
+      const dots = imgs.map((_,i) => `<button class="admin-slide-dot${i===0?' active':''}" onclick="adminSlideGo('${f.id}',${i})"></button>`).join('');
+      const slides = imgs.map((u,i) => `<img src="${u}" class="${i===0?'active':''}" />`).join('');
+      imgHtml = `<div class="admin-slide-preview" id="aslide-${f.id}">${slides}<div class="admin-slide-dots">${dots}</div></div>`;
+    }
+    return `
     <div class="item-card">
-      <div class="item-card-img">${f.imageUrl ? `<img src="${f.imageUrl}" />` : '<div class="no-img">No image</div>'}</div>
+      <div class="item-card-img">${imgHtml}</div>
       <div class="item-card-body">
         <div class="item-card-title">${f.title}</div>
-        <div class="item-card-meta">${f.description || ''}</div>
+        <div class="item-card-meta">${f.description || ''}${imgs.length > 1 ? ` <span style="color:var(--copper-shine);margin-left:4px;">· ${imgs.length} photos</span>` : ''}</div>
       </div>
       <div class="item-card-actions">
         <button class="btn btn-outline btn-sm" onclick="openFeatureModal('${f.id}')">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteItem('features','${f.id}')">Delete</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+  // Start auto-slideshows for multi-image cards
+  items.forEach(f => {
+    const imgs = Array.isArray(f.images) && f.images.length > 0 ? f.images : (f.imageUrl ? [f.imageUrl] : []);
+    if (imgs.length > 1) startAdminSlide(f.id, imgs.length);
+  });
 }
 
+const _adminSlideTimers = {};
+function startAdminSlide(featureId, count) {
+  if (_adminSlideTimers[featureId]) clearInterval(_adminSlideTimers[featureId]);
+  let cur = 0;
+  _adminSlideTimers[featureId] = setInterval(() => {
+    cur = (cur + 1) % count;
+    adminSlideGo(featureId, cur);
+  }, 3000);
+}
+function adminSlideGo(featureId, idx) {
+  const wrap = document.getElementById('aslide-' + featureId);
+  if (!wrap) return;
+  wrap.querySelectorAll('img').forEach((img, i) => img.classList.toggle('active', i === idx));
+  wrap.querySelectorAll('.admin-slide-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+}
+
+// Multi-image state for feature modal
+let _featureImages = []; // [{url, file?, name}] — url=existing, file=new upload
+
 function openFeatureModal(editId) {
+  _featureImages = [];
   openModal(editId ? 'Edit Feature' : 'Add Feature');
   document.getElementById('modalBody').innerHTML = `
     <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="mTitle" placeholder="e.g. Boutique Rooms" /></div>
     <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="mDesc" placeholder="Short description"></textarea></div>
     <div class="form-group"><label class="form-label">Display Order</label><input type="number" class="form-input" id="mOrder" value="0" min="0" /></div>
-    <div class="form-group"><label class="form-label">Image</label>${fileInputHtml('mImg')}</div>`;
+    <div class="form-group">
+      <label class="form-label">Photos <span style="font-weight:400;color:var(--text-dim)">(add as many as you like — they'll slideshow on the homepage)</span></label>
+      <div class="img-upload-zone" onclick="this.querySelector('input').click()" style="margin-bottom:0.5rem;">
+        <input type="file" accept="image/*" multiple id="mImgPicker" onchange="featureImgAdd(this)" />
+        <div class="label"><strong>Click to add photos</strong> — select one or multiple at once</div>
+      </div>
+      <div class="multi-img-list" id="featureImgList"></div>
+    </div>`;
   document.getElementById('modalFooter').innerHTML = `
     <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     <button class="btn btn-copper" onclick="saveFeature('${editId||''}')">Save</button>`;
-  if (editId) loadEditData('features', editId, ['mTitle:title','mDesc:description','mOrder:order'], 'mImg');
+  if (editId) {
+    loadEditData('features', editId, ['mTitle:title','mDesc:description','mOrder:order']);
+    // Also load existing images
+    loadFeatureImages(editId);
+  }
+}
+
+async function loadFeatureImages(editId) {
+  const { db } = window._fb;
+  const { getDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.7.3/firebase-firestore.js');
+  const snap = await getDoc(doc(db, 'features', editId));
+  if (!snap.exists()) return;
+  const data = snap.data();
+  const imgs = Array.isArray(data.images) && data.images.length > 0 ? data.images : (data.imageUrl ? [data.imageUrl] : []);
+  imgs.forEach(url => {
+    _featureImages.push({ url, name: url.split('/').pop().split('?')[0].slice(0,28) });
+  });
+  renderFeatureImgList();
+}
+
+function featureImgAdd(input) {
+  Array.from(input.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      _featureImages.push({ url: e.target.result, file, name: file.name });
+      renderFeatureImgList();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function featureImgRemove(idx) {
+  _featureImages.splice(idx, 1);
+  renderFeatureImgList();
+}
+
+function renderFeatureImgList() {
+  const list = document.getElementById('featureImgList');
+  if (!list) return;
+  if (_featureImages.length === 0) { list.innerHTML = ''; return; }
+  list.innerHTML = _featureImages.map((img, i) => `
+    <div class="multi-img-item">
+      <img class="multi-img-thumb" src="${img.url}" />
+      <span class="multi-img-name">${img.file ? img.file.name : img.name}</span>
+      <button class="multi-img-remove" onclick="featureImgRemove(${i})">&#215;</button>
+    </div>`).join('');
 }
 
 async function saveFeature(editId) {
   const data = { title: gv('mTitle'), description: gv('mDesc'), order: parseInt(gv('mOrder')) || 0 };
   if (!data.title) { alert('Title is required.'); return; }
-  await saveItem('features', editId, data, 'mImg', `features/${Date.now()}`);
-  closeModal(); await loadFeatures(); showToast('Feature saved');
+
+  // Upload any new files
+  const btn = document.querySelector('#modalFooter .btn-copper');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    const { storage, ref, uploadBytesResumable, getDownloadURL, db, collection, addDoc, doc, updateDoc } = window._fb;
+    const finalUrls = [];
+    for (const img of _featureImages) {
+      if (img.file) {
+        // New upload
+        const storageRef = ref(storage, `features/${Date.now()}_${img.file.name}`);
+        const url = await new Promise((resolve, reject) => {
+          const task = uploadBytesResumable(storageRef, img.file);
+          task.on('state_changed', null, reject, async () => resolve(await getDownloadURL(task.snapshot.ref)));
+        });
+        finalUrls.push(url);
+      } else {
+        finalUrls.push(img.url);
+      }
+    }
+    data.images = finalUrls;
+    // Keep legacy imageUrl for backward compat
+    data.imageUrl = finalUrls[0] || '';
+
+    if (editId) { await updateDoc(doc(db, 'features', editId), data); }
+    else { await addDoc(collection(db, 'features'), data); }
+
+    closeModal(); await loadFeatures(); showToast('Feature saved');
+  } catch(e) {
+    console.error(e); showToast('Save failed. Try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
 }
 
 /* ── Rooms ──────────────────────────────── */
