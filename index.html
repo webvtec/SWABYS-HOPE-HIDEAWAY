@@ -749,12 +749,14 @@
     /* Primary outline copper button */
     .btn-primary {
       display: inline-flex; align-items: center; gap: var(--space-sm);
-      padding: 10px 20px;
+      padding: 9px 14px;
       background: linear-gradient(135deg, #C17A3A 0%, #A0601E 50%, #8B4E14 100%);
       color: rgba(255,245,235,1);
       font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
-      border-radius: 50px;
+      border-radius: 5px;
       border: 1px solid rgba(232,168,124,0.5);
+      outline: 1px solid rgba(255,255,255,0.55);
+      outline-offset: -3px;
       box-shadow:
         0 0 8px rgba(232,168,124,0.9),
         0 0 20px rgba(184,115,51,0.7),
@@ -1502,10 +1504,12 @@
     }
     .hpb-btn {
       flex-shrink: 0;
-      padding: 8px 16px;
+      padding: 8px 12px;
       background: linear-gradient(135deg, #C17A3A 0%, #A0601E 50%, #8B4E14 100%);
       border: 1px solid rgba(232,168,124,0.5);
-      border-radius: 50px;
+      border-radius: 5px;
+      outline: 1px solid rgba(255,255,255,0.55);
+      outline-offset: -3px;
       color: rgba(255,245,235,1);
       font-family: var(--font-body);
       font-size: 0.6rem; font-weight: 700;
