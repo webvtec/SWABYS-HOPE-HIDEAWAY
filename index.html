@@ -1041,9 +1041,9 @@
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
     .calendar-day-label { text-align: center; font-size: 10px; font-weight: 600; color: var(--text-muted); padding: 4px; text-transform: uppercase; }
     .calendar-day { text-align: center; padding: 6px 2px; font-size: var(--text-xs); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; color: var(--text-primary); }
-    .calendar-day:hover { background: rgba(184,115,51,0.12); }
-    .calendar-day.available { background: rgba(184,115,51,0.06); }
-    .calendar-day.booked { color: #94A3B8; text-decoration: line-through; cursor: default; }
+    .calendar-day.available { background: rgba(37,99,235,0.10); color: #1D4ED8; font-weight: 600; border: 1px solid rgba(37,99,235,0.22); }
+    .calendar-day.available:hover { background: rgba(37,99,235,0.18); }
+    .calendar-day.booked { background: rgba(148,163,184,0.10); color: #94A3B8; text-decoration: line-through; cursor: default; border: 1px solid transparent; font-weight: 400; }
     .calendar-day.booked:hover, .calendar-day.empty:hover { background: transparent; }
     .room-card-actions { display: flex; gap: var(--space-sm); margin-top: auto; padding-top: var(--space-md); }
     .room-card-actions .btn-primary { flex: 1; justify-content: center; padding: 14px 24px; }
@@ -2165,10 +2165,10 @@
         <!-- Guest info -->
         <div class="form-row">
           <div class="form-group"><label class="form-label">Full Name <span class="required">*</span></label><input class="form-input" id="bmName" placeholder="Your full name" /></div>
-          <div class="form-group"><label class="form-label">Email <span class="required">*</span></label><input type="email" class="form-input" id="bmEmail" placeholder="you@email.com" /></div>
+          <div class="form-group"><label class="form-label">Phone <span class="required">*</span></label><input type="tel" class="form-input" id="bmPhone" placeholder="+1 (876) ..." /></div>
         </div>
-        <div class="form-group"><label class="form-label">Phone <span class="required">*</span></label><input type="tel" class="form-input" id="bmPhone" placeholder="+1 (876) ..." /></div>
-        <div class="form-group"><label class="form-label">Special Requests</label><textarea class="form-textarea" id="bmRequests" placeholder="Any special requests or notes?" style="min-height:70px;"></textarea></div>
+        <div class="form-group"><label class="form-label">Email <span class="required">*</span></label><input type="email" class="form-input" id="bmEmail" placeholder="you@email.com" /></div>
+        <div class="form-group"><label class="form-label">Special Requests <span style="font-weight:400;font-size:var(--text-xs);color:var(--text-muted);">(optional)</span></label><textarea class="form-textarea" id="bmRequests" placeholder="Any special requests or notes?" style="min-height:70px;"></textarea></div>
         <button class="btn-primary form-submit" id="bmSubmitBtn" onclick="submitBooking()" style="width:100%;justify-content:center;margin-top:0.5rem;">
           Confirm Booking
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
