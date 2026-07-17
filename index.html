@@ -63,6 +63,36 @@
       } catch(e) { if (errEl) { errEl.textContent = e.message; errEl.style.display='block'; } }
     };
 
+    const ADMIN_UID = 'BxvlpyhRr3Wev3GezyQqmtRDDnD2';
+
+    window._adminSignIn = async () => {
+      const errEl = document.getElementById('adminAccessErr');
+      const btn   = document.getElementById('adminAccessBtn');
+      if (errEl) errEl.style.display = 'none';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" style="animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="31 31"/></svg> Signing in…'; }
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      try {
+        const result = await signInWithPopup(auth, provider);
+        if (result.user.uid !== ADMIN_UID) {
+          // Wrong account — sign them back out immediately
+          await window._fb.signOut(auth);
+          if (errEl) { errEl.textContent = 'Access denied. Not an authorised admin account.'; errEl.style.display = 'block'; }
+          if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Admin'; }
+          return;
+        }
+        // Correct admin — redirect to dashboard
+        window.location.href = 'admin.html';
+      } catch(e) {
+        if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+          if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Admin'; }
+          return;
+        }
+        if (errEl) { errEl.textContent = 'Sign-in failed. Please try again.'; errEl.style.display = 'block'; }
+        if (btn) { btn.disabled = false; btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Admin'; }
+      }
+    };
+
     window._signInEmail = async () => {
       const email = document.getElementById('authEmail')?.value.trim();
       const pass  = document.getElementById('authPass')?.value;
@@ -2020,16 +2050,8 @@
         <li><a class="nav-link" data-page="events" onclick="navigateTo('events')">Weddings &amp; Events</a></li>
         <li><a class="nav-link" data-page="reviews" onclick="navigateTo('reviews')">Reviews</a></li>
       </ul>
-      <!-- RIGHT: Admin + Call + thin divider + Location -->
+      <!-- RIGHT: Call + thin divider + Location -->
       <div style="display:flex;align-items:center;gap:0;">
-        <button onclick="openAdminLoginModal()" aria-label="Admin" title="Admin"
-          style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;border:1px solid rgba(184,115,51,0.28);background:rgba(184,115,51,0.06);color:var(--copper-shine);margin-right:8px;transition:all 0.25s;flex-shrink:0;cursor:pointer;"
-          onmouseover="this.style.background='rgba(184,115,51,0.16)';this.style.borderColor='var(--copper)'"
-          onmouseout="this.style.background='rgba(184,115,51,0.06)';this.style.borderColor='rgba(184,115,51,0.28)'">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
-          </svg>
-        </button>
         <button class="nav-call-btn" onclick="openCallModal()" aria-label="Call us" style="width:38px;height:38px;">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
         </button>
@@ -2266,6 +2288,18 @@
           onkeydown="if(event.key==='Enter')authSubmit()" />
         <button id="authSubmitBtn" onclick="authSubmit()" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,var(--copper-shine),var(--copper),var(--copper-deep));color:#fff;border:none;border-radius:8px;font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(184,115,51,0.3);">Sign In</button>
         <div id="authModalError" style="display:none;margin-top:0.75rem;padding:0.625rem 0.875rem;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.18);border-radius:6px;font-size:0.75rem;color:#DC2626;text-align:center;"></div>
+
+        <!-- Admin access -->
+        <div style="display:flex;align-items:center;gap:0.75rem;margin:1rem 0 0.875rem;">
+          <div style="flex:1;height:1px;background:#E8E4DE;"></div>
+          <span style="font-size:0.6rem;color:var(--text-muted);letter-spacing:0.14em;text-transform:uppercase;font-family:var(--font-body);">staff</span>
+          <div style="flex:1;height:1px;background:#E8E4DE;"></div>
+        </div>
+        <button onclick="window._adminSignIn()" id="adminAccessBtn" style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.625rem;padding:0.75rem 1.25rem;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;color:#374151;font-family:var(--font-body);font-size:0.78rem;font-weight:600;cursor:pointer;transition:all 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.07);" onmouseover="this.style.borderColor='#B87333';this.style.boxShadow='0 0 0 3px rgba(184,115,51,0.1)'" onmouseout="this.style.borderColor='#E2E8F0';this.style.boxShadow='0 1px 4px rgba(0,0,0,0.07)'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Admin
+        </button>
+        <div id="adminAccessErr" style="display:none;margin-top:0.625rem;padding:0.5rem 0.75rem;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.18);border-radius:6px;font-size:0.72rem;color:#DC2626;text-align:center;font-family:var(--font-body);"></div>
       </div>
 
       <!-- ── PROFILE PANEL (shown when logged in) ── -->
@@ -3520,94 +3554,6 @@
       obs.observe(banner);
     })();
 
-  </script>
-
-  <!-- ═══════════════════════════════════════════
-       ADMIN LOGIN MODAL
-  ═══════════════════════════════════════════ -->
-  <div id="adminLoginScrim" onclick="if(event.target===this)closeAdminLoginModal()" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:1rem;">
-    <div style="background:#fff;border-radius:16px;padding:2rem 1.75rem 1.75rem;width:100%;max-width:380px;position:relative;box-shadow:0 32px 80px rgba(0,0,0,0.4),0 0 0 1px rgba(184,115,51,0.15);animation:eventModalIn 0.3s var(--ease-out);">
-      <!-- Close -->
-      <button onclick="closeAdminLoginModal()" style="position:absolute;top:1rem;right:1rem;width:30px;height:30px;border-radius:50%;border:1px solid rgba(184,115,51,0.25);background:none;display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-muted);cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--copper)';this.style.color='var(--copper)'" onmouseout="this.style.borderColor='rgba(184,115,51,0.25)';this.style.color='var(--text-muted)'">&#215;</button>
-      <!-- Header -->
-      <div style="text-align:center;margin-bottom:1.75rem;">
-        <div style="font-family:var(--font-body);font-size:0.65rem;font-weight:700;letter-spacing:0.25em;text-transform:uppercase;color:var(--copper);margin-bottom:0.5rem;">Staff Entrance</div>
-        <h3 style="font-family:var(--font-display);font-size:1.5rem;font-weight:400;color:var(--text-primary);margin:0 0 0.25rem;">Admin Access</h3>
-        <div style="width:36px;height:1px;background:linear-gradient(90deg,transparent,var(--copper),transparent);margin:0.75rem auto 0;"></div>
-      </div>
-      <!-- Fields -->
-      <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1rem;">
-        <input id="adminLoginEmail" type="email" placeholder="Admin email" autocomplete="username"
-          style="width:100%;padding:0.8rem 1rem;border:1px solid rgba(184,115,51,0.25);border-radius:8px;font-family:var(--font-body);font-size:0.85rem;color:var(--text-primary);background:#faf8f5;outline:none;transition:border-color 0.2s;"
-          onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='rgba(184,115,51,0.25)'"
-          onkeydown="if(event.key==='Enter')document.getElementById('adminLoginPass').focus()" />
-        <input id="adminLoginPass" type="password" placeholder="Password" autocomplete="current-password"
-          style="width:100%;padding:0.8rem 1rem;border:1px solid rgba(184,115,51,0.25);border-radius:8px;font-family:var(--font-body);font-size:0.85rem;color:var(--text-primary);background:#faf8f5;outline:none;transition:border-color 0.2s;"
-          onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='rgba(184,115,51,0.25)'"
-          onkeydown="if(event.key==='Enter')adminLoginSubmit()" />
-      </div>
-      <!-- Error -->
-      <div id="adminLoginErr" style="display:none;padding:0.5rem 0.75rem;background:rgba(220,38,38,0.07);border:1px solid rgba(220,38,38,0.2);border-radius:6px;font-size:0.75rem;color:#DC2626;text-align:center;margin-bottom:0.75rem;font-family:var(--font-body);"></div>
-      <!-- Submit -->
-      <button id="adminLoginBtn" onclick="adminLoginSubmit()"
-        style="width:100%;padding:0.875rem;background:linear-gradient(135deg,var(--copper-shine),var(--copper));color:#fff;border:none;border-radius:8px;font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;transition:opacity 0.2s;"
-        onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
-        Sign In
-      </button>
-    </div>
-  </div>
-
-  <script type="module">
-    // ── Admin Login Modal (email / password → redirect to admin.html) ──────────
-    import { getAuth, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-auth.js';
-    import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js';
-
-    // Re-use the already-initialised Firebase app if present
-    const _adminApp = getApps().length ? getApps()[0] : initializeApp({
-      apiKey: "AIzaSyCxRadGAXnaBOfUHABUPIgG3_XUyH0a1vs",
-      authDomain: "swabys-hope-hideaway.firebaseapp.com",
-      projectId: "swabys-hope-hideaway",
-      storageBucket: "swabys-hope-hideaway.firebasestorage.app",
-      messagingSenderId: "183455042448",
-      appId: "1:183455042448:web:cf2bed23dcb20e578ac115"
-    });
-    const _adminAuth = getAuth(_adminApp);
-
-    window.openAdminLoginModal = () => {
-      const scrim = document.getElementById('adminLoginScrim');
-      scrim.style.display = 'flex';
-      document.body.style.overflow = 'hidden';
-      document.getElementById('adminLoginEmail').value = '';
-      document.getElementById('adminLoginPass').value = '';
-      document.getElementById('adminLoginErr').style.display = 'none';
-      const btn = document.getElementById('adminLoginBtn');
-      btn.disabled = false; btn.textContent = 'Sign In';
-      setTimeout(() => document.getElementById('adminLoginEmail').focus(), 80);
-    };
-
-    window.closeAdminLoginModal = () => {
-      document.getElementById('adminLoginScrim').style.display = 'none';
-      document.body.style.overflow = '';
-    };
-
-    window.adminLoginSubmit = async () => {
-      const email  = document.getElementById('adminLoginEmail').value.trim();
-      const pass   = document.getElementById('adminLoginPass').value;
-      const errEl  = document.getElementById('adminLoginErr');
-      const btn    = document.getElementById('adminLoginBtn');
-      errEl.style.display = 'none';
-      if (!email || !pass) { errEl.textContent = 'Please enter your email and password.'; errEl.style.display = 'block'; return; }
-      btn.disabled = true; btn.textContent = 'Signing in…';
-      try {
-        await signInWithEmailAndPassword(_adminAuth, email, pass);
-        // Signed in — let admin.html verify the UID and grant access
-        window.location.href = 'admin.html';
-      } catch(e) {
-        errEl.textContent = 'Incorrect email or password.';
-        errEl.style.display = 'block';
-        btn.disabled = false; btn.textContent = 'Sign In';
-      }
-    };
   </script>
 
 </body>
