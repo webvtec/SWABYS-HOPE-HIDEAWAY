@@ -56,7 +56,11 @@
     window._signInGoogle = async () => {
       const errEl = document.getElementById('authModalError');
       if (errEl) errEl.style.display = 'none';
-      try { await signInWithPopup(auth, googleProvider); closeAuthModal(); } catch(e) { if (errEl) { errEl.textContent = e.message; errEl.style.display='block'; } }
+      try {
+        await signInWithPopup(auth, googleProvider);
+        // onAuthStateChanged fires → profile loads → show profile panel
+        if (typeof _showProfilePanel === 'function') _showProfilePanel();
+      } catch(e) { if (errEl) { errEl.textContent = e.message; errEl.style.display='block'; } }
     };
 
     window._signInEmail = async () => {
@@ -65,8 +69,10 @@
       const errEl = document.getElementById('authModalError');
       if (errEl) errEl.style.display='none';
       if (!email||!pass) { if(errEl){errEl.textContent='Enter email and password.';errEl.style.display='block';} return; }
-      try { await signInWithEmailAndPassword(auth, email, pass); closeAuthModal(); }
-      catch(e) { if(errEl){errEl.textContent='Incorrect email or password.';errEl.style.display='block';} }
+      try {
+        await signInWithEmailAndPassword(auth, email, pass);
+        if (typeof _showProfilePanel === 'function') _showProfilePanel();
+      } catch(e) { if(errEl){errEl.textContent='Incorrect email or password.';errEl.style.display='block';} }
     };
 
     window._signUpEmail = async () => {
@@ -76,8 +82,10 @@
       if (errEl) errEl.style.display='none';
       if (!email||!pass) { if(errEl){errEl.textContent='Enter email and password.';errEl.style.display='block';} return; }
       if (pass.length < 6) { if(errEl){errEl.textContent='Password must be at least 6 characters.';errEl.style.display='block';} return; }
-      try { await createUserWithEmailAndPassword(auth, email, pass); closeAuthModal(); }
-      catch(e) { if(errEl){errEl.textContent=e.code==='auth/email-already-in-use'?'This email is already registered. Try signing in.':e.message;errEl.style.display='block';} }
+      try {
+        await createUserWithEmailAndPassword(auth, email, pass);
+        if (typeof _showProfilePanel === 'function') _showProfilePanel();
+      } catch(e) { if(errEl){errEl.textContent=e.code==='auth/email-already-in-use'?'This email is already registered. Try signing in.':e.message;errEl.style.display='block';} }
     };
 
     window._signOut = async () => { try { await signOut(auth); } catch(e) {} };
@@ -2209,36 +2217,77 @@
 
   </div><!-- /page-reviews -->
 
-  <!-- PROFILE MODAL -->
-  <div id="profileModalScrim" style="display:none;position:fixed;inset:0;z-index:4100;background:rgba(0,0,0,0.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeProfileModal()">
-    <div style="background:#fff;border-radius:20px;width:100%;max-width:440px;max-height:92vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.45),0 0 0 1px rgba(184,115,51,0.12);position:relative;animation:eventModalIn 0.35s cubic-bezier(0.16,1,0.3,1);">
-      <!-- Header strip -->
-      <div style="background:linear-gradient(135deg,rgba(184,115,51,0.08),rgba(184,115,51,0.03));border-bottom:1px solid rgba(184,115,51,0.12);padding:1.5rem 1.75rem 1.25rem;border-radius:20px 20px 0 0;">
-        <button onclick="closeProfileModal()" style="position:absolute;top:1rem;right:1rem;width:30px;height:30px;border-radius:50%;border:1px solid rgba(184,115,51,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-muted);background:none;cursor:pointer;line-height:1;">&#215;</button>
-        <!-- Avatar -->
-        <div style="display:flex;align-items:center;gap:1rem;">
-          <div id="profileModalAvatar" onclick="triggerAvatarUpload()" style="width:64px;height:64px;border-radius:50%;border:2px solid rgba(184,115,51,0.4);overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(184,115,51,0.08);cursor:pointer;flex-shrink:0;transition:border-color 0.3s;" onmouseover="this.style.borderColor='var(--copper)'" onmouseout="this.style.borderColor='rgba(184,115,51,0.4)'">
-            <img id="profileModalAvatarImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;" />
-            <span id="profileModalAvatarInitials" style="font-family:var(--font-display);font-size:1.25rem;font-weight:500;color:var(--copper);"></span>
-          </div>
-          <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)" />
-          <div>
-            <div style="font-family:var(--font-display);font-size:1.125rem;font-weight:500;color:var(--text-primary);" id="profileModalName">My Profile</div>
-            <div style="font-size:0.72rem;color:var(--text-muted);" id="profileModalEmail"></div>
-            <button onclick="triggerAvatarUpload()" style="font-size:0.65rem;color:var(--copper);background:none;border:none;cursor:pointer;padding:0;margin-top:2px;letter-spacing:0.04em;">Change photo</button>
-          </div>
-        </div>
-      </div>
-      <!-- Form body -->
-      <div style="padding:1.5rem 1.75rem;">
-        <!-- Tabs: Profile / My Bookings -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;border:1.5px solid rgba(184,115,51,0.2);border-radius:8px;overflow:hidden;margin-bottom:1.5rem;">
-          <button id="profileTabProfile" onclick="switchProfileTab('profile')" style="padding:0.625rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(184,115,51,0.08);color:var(--copper);border:none;cursor:pointer;font-family:var(--font-body);transition:all 0.2s;">Profile</button>
-          <button id="profileTabBookings" onclick="switchProfileTab('bookings')" style="padding:0.625rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#fff;color:var(--text-muted);border:none;cursor:pointer;font-family:var(--font-body);transition:all 0.2s;">My Bookings</button>
+  <!-- UNIFIED ACCOUNT MODAL — shows auth when logged out, profile when logged in -->
+  <div id="accountModalScrim" style="display:none;position:fixed;inset:0;z-index:4100;background:rgba(0,0,0,0.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeAccountModal()">
+    <div style="background:#fff;border-radius:20px;width:100%;max-width:420px;max-height:92vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,0.4),0 0 0 1px rgba(184,115,51,0.12);position:relative;animation:eventModalIn 0.32s cubic-bezier(0.16,1,0.3,1);">
+      <button onclick="closeAccountModal()" style="position:absolute;top:1rem;right:1rem;width:30px;height:30px;border-radius:50%;border:1px solid rgba(184,115,51,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-muted);background:none;cursor:pointer;line-height:1;z-index:2;">&#215;</button>
+
+      <!-- ── AUTH PANEL (shown when logged out) ── -->
+      <div id="authPanel" style="padding:2rem 1.75rem;">
+        <div style="text-align:center;margin-bottom:1.625rem;">
+          <div style="font-family:var(--font-display);font-size:1.375rem;font-weight:500;color:var(--text-primary);margin-bottom:0.3rem;">Welcome</div>
+          <div style="font-size:0.78rem;color:var(--text-muted);">Sign in or create an account to continue.</div>
         </div>
 
-        <!-- PROFILE TAB -->
-        <div id="profileTabContentProfile">
+        <!-- Google -->
+        <button onclick="window._signInGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.75rem;padding:0.825rem 1.25rem;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;color:#374151;font-family:var(--font-body);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;margin-bottom:1.125rem;box-shadow:0 1px 4px rgba(0,0,0,0.07);" onmouseover="this.style.borderColor='#B87333';this.style.boxShadow='0 0 0 3px rgba(184,115,51,0.1)'" onmouseout="this.style.borderColor='#E2E8F0';this.style.boxShadow='0 1px 4px rgba(0,0,0,0.07)'">
+          <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+          Continue with Google
+        </button>
+
+        <!-- Divider -->
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.125rem;">
+          <div style="flex:1;height:1px;background:#E8E4DE;"></div>
+          <span style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.12em;text-transform:uppercase;font-family:var(--font-body);">or</span>
+          <div style="flex:1;height:1px;background:#E8E4DE;"></div>
+        </div>
+
+        <!-- Sign In / Sign Up tabs -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #E8E4DE;border-radius:8px;overflow:hidden;margin-bottom:1rem;">
+          <button id="authTabSignIn" onclick="setAuthTab('signin')" style="padding:0.55rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(184,115,51,0.07);color:var(--copper);border:none;cursor:pointer;font-family:var(--font-body);transition:all 0.18s;">Sign In</button>
+          <button id="authTabSignUp" onclick="setAuthTab('signup')" style="padding:0.55rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#fff;color:var(--text-muted);border:none;cursor:pointer;font-family:var(--font-body);transition:all 0.18s;">Create Account</button>
+        </div>
+
+        <input id="authEmail" type="email" placeholder="Email address" autocomplete="email"
+          style="width:100%;padding:0.75rem 1rem;background:#FAF8F5;border:1.5px solid #E8E4DE;border-radius:8px;font-family:var(--font-body);font-size:0.85rem;color:var(--text-primary);outline:none;margin-bottom:0.625rem;"
+          onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='#E8E4DE'"
+          onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()" />
+        <input id="authPass" type="password" placeholder="Password" autocomplete="current-password"
+          style="width:100%;padding:0.75rem 1rem;background:#FAF8F5;border:1.5px solid #E8E4DE;border-radius:8px;font-family:var(--font-body);font-size:0.85rem;color:var(--text-primary);outline:none;margin-bottom:1rem;"
+          onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='#E8E4DE'"
+          onkeydown="if(event.key==='Enter')authSubmit()" />
+        <button id="authSubmitBtn" onclick="authSubmit()" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,var(--copper-shine),var(--copper),var(--copper-deep));color:#fff;border:none;border-radius:8px;font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(184,115,51,0.3);">Sign In</button>
+        <div id="authModalError" style="display:none;margin-top:0.75rem;padding:0.625rem 0.875rem;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.18);border-radius:6px;font-size:0.75rem;color:#DC2626;text-align:center;"></div>
+      </div>
+
+      <!-- ── PROFILE PANEL (shown when logged in) ── -->
+      <div id="profilePanel" style="display:none;">
+        <!-- Header with avatar -->
+        <div style="background:linear-gradient(135deg,rgba(184,115,51,0.07),rgba(184,115,51,0.02));border-bottom:1px solid rgba(184,115,51,0.12);padding:1.5rem 1.75rem 1.25rem;border-radius:20px 20px 0 0;">
+          <div style="display:flex;align-items:center;gap:1rem;">
+            <div id="profileModalAvatar" onclick="triggerAvatarUpload()" style="width:62px;height:62px;border-radius:50%;border:2px solid rgba(184,115,51,0.35);overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(184,115,51,0.08);cursor:pointer;flex-shrink:0;transition:border-color 0.25s;" onmouseover="this.style.borderColor='var(--copper)'" onmouseout="this.style.borderColor='rgba(184,115,51,0.35)'">
+              <img id="profileModalAvatarImg" src="" alt="" style="display:none;width:100%;height:100%;object-fit:cover;" />
+              <span id="profileModalAvatarInitials" style="font-family:var(--font-display);font-size:1.2rem;font-weight:500;color:var(--copper);"></span>
+            </div>
+            <input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="handleAvatarUpload(this)" />
+            <div style="min-width:0;">
+              <div style="font-family:var(--font-display);font-size:1.05rem;font-weight:500;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="profileModalName">My Profile</div>
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="profileModalEmail"></div>
+              <button onclick="triggerAvatarUpload()" style="font-size:0.65rem;color:var(--copper);background:none;border:none;cursor:pointer;padding:0;margin-top:3px;letter-spacing:0.04em;font-family:var(--font-body);">Change photo</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div style="padding:1.25rem 1.75rem 0;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;border:1.5px solid rgba(184,115,51,0.2);border-radius:8px;overflow:hidden;margin-bottom:1.25rem;">
+            <button id="profileTabProfile" onclick="switchProfileTab('profile')" style="padding:0.6rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:rgba(184,115,51,0.08);color:var(--copper);border:none;cursor:pointer;font-family:var(--font-body);transition:all 0.18s;">Profile</button>
+            <button id="profileTabBookings" onclick="switchProfileTab('bookings')" style="padding:0.6rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#fff;color:var(--text-muted);border:none;cursor:pointer;font-family:var(--font-body);transition:all 0.18s;">My Bookings</button>
+          </div>
+        </div>
+
+        <!-- Profile tab content -->
+        <div id="profileTabContentProfile" style="padding:0 1.75rem 1.75rem;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;margin-bottom:0.875rem;">
             <div style="grid-column:1/-1;">
               <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Full Name <span style="color:var(--copper);">*</span></label>
@@ -2254,52 +2303,22 @@
             </div>
             <div style="grid-column:1/-1;">
               <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Email</label>
-              <input id="pEmail" type="email" placeholder="your@email.com" class="form-input" style="width:100%;opacity:0.7;" readonly />
+              <input id="pEmail" type="email" class="form-input" style="width:100%;opacity:0.65;cursor:default;" readonly />
             </div>
           </div>
           <div id="profileSaveMsg" style="display:none;font-size:0.75rem;margin-bottom:0.75rem;padding:0.5rem 0.75rem;border-radius:6px;"></div>
-          <button onclick="saveUserProfile()" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,var(--copper-shine),var(--copper),var(--copper-deep));color:#fff;border:none;border-radius:8px;font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(184,115,51,0.3);margin-bottom:1rem;">Save Profile</button>
-          <button onclick="handleGuestSignOut()" style="width:100%;padding:0.75rem;background:none;color:var(--text-muted);border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-family:var(--font-body);font-size:0.75rem;font-weight:600;letter-spacing:0.06em;cursor:pointer;">Sign Out</button>
+          <button onclick="saveUserProfile()" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,var(--copper-shine),var(--copper),var(--copper-deep));color:#fff;border:none;border-radius:8px;font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(184,115,51,0.28);margin-bottom:0.75rem;">Save Profile</button>
+          <button onclick="handleGuestSignOut()" style="width:100%;padding:0.75rem;background:none;color:var(--text-muted);border:1px solid #E8E4DE;border-radius:8px;font-family:var(--font-body);font-size:0.75rem;font-weight:600;letter-spacing:0.06em;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='#DC2626';this.style.color='#DC2626'" onmouseout="this.style.borderColor='#E8E4DE';this.style.color='var(--text-muted)'">Sign Out</button>
         </div>
 
-        <!-- BOOKINGS TAB -->
-        <div id="profileTabContentBookings" style="display:none;">
+        <!-- Bookings tab content -->
+        <div id="profileTabContentBookings" style="display:none;padding:0 1.75rem 1.75rem;">
           <div id="profileBookingsList">
             <div style="text-align:center;padding:2rem 0;color:var(--text-muted);font-style:italic;font-size:0.85rem;">Loading your bookings…</div>
           </div>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- AUTH MODAL -->
-  <div id="authModalScrim" style="display:none;position:fixed;inset:0;z-index:4000;background:rgba(0,0,0,0.75);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);align-items:center;justify-content:center;padding:1rem;" onclick="if(event.target===this)closeAuthModal()">
-    <div style="background:#fff;border-radius:16px;padding:2rem 1.75rem;width:100%;max-width:400px;box-shadow:0 32px 80px rgba(0,0,0,0.4),0 0 0 1px rgba(184,115,51,0.12);position:relative;animation:eventModalIn 0.3s cubic-bezier(0.16,1,0.3,1);">
-      <button onclick="closeAuthModal()" style="position:absolute;top:1rem;right:1rem;width:30px;height:30px;border-radius:50%;border:1px solid rgba(184,115,51,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--text-muted);background:none;cursor:pointer;line-height:1;">&#215;</button>
-      <div style="text-align:center;margin-bottom:1.5rem;">
-        <div style="font-family:var(--font-display);font-size:1.375rem;font-weight:500;color:var(--text-primary);margin-bottom:0.25rem;">Sign in to Continue</div>
-        <div style="font-size:0.78rem;color:var(--text-muted);">A free account is required to make a booking.</div>
-      </div>
-      <!-- Google -->
-      <button onclick="window._signInGoogle()" style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.75rem;padding:0.8rem 1.25rem;background:#fff;border:1.5px solid #E2E8F0;border-radius:8px;color:#374151;font-family:var(--font-body);font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s;margin-bottom:1rem;box-shadow:0 1px 4px rgba(0,0,0,0.08);" onmouseover="this.style.borderColor='#B87333';this.style.boxShadow='0 0 0 3px rgba(184,115,51,0.12)'" onmouseout="this.style.borderColor='#E2E8F0';this.style.boxShadow='0 1px 4px rgba(0,0,0,0.08)'">
-        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
-        Continue with Google
-      </button>
-      <!-- Divider -->
-      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
-        <div style="flex:1;height:1px;background:#E2E8F0;"></div>
-        <span style="font-size:0.65rem;color:var(--text-muted);letter-spacing:0.1em;text-transform:uppercase;">or</span>
-        <div style="flex:1;height:1px;background:#E2E8F0;"></div>
-      </div>
-      <!-- Tab toggle -->
-      <div id="authTabRow" style="display:grid;grid-template-columns:1fr 1fr;border:1.5px solid #E2E8F0;border-radius:8px;overflow:hidden;margin-bottom:1rem;">
-        <button id="authTabSignIn" onclick="setAuthTab('signin')" style="padding:0.5rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#F8F6F3;color:var(--copper);border:none;cursor:pointer;font-family:var(--font-body);">Sign In</button>
-        <button id="authTabSignUp" onclick="setAuthTab('signup')" style="padding:0.5rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#fff;color:var(--text-muted);border:none;cursor:pointer;font-family:var(--font-body);">Create Account</button>
-      </div>
-      <input id="authEmail" type="email" placeholder="Email address" autocomplete="email" style="width:100%;padding:0.75rem 1rem;background:#F8F6F3;border:1.5px solid #E2E8F0;border-radius:8px;font-family:var(--font-body);font-size:0.85rem;color:var(--text-primary);outline:none;margin-bottom:0.625rem;" onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='#E2E8F0'" onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()" />
-      <input id="authPass" type="password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:0.75rem 1rem;background:#F8F6F3;border:1.5px solid #E2E8F0;border-radius:8px;font-family:var(--font-body);font-size:0.85rem;color:var(--text-primary);outline:none;margin-bottom:1rem;" onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='#E2E8F0'" onkeydown="if(event.key==='Enter')authSubmit()" />
-      <button id="authSubmitBtn" onclick="authSubmit()" style="width:100%;padding:0.875rem;background:linear-gradient(135deg,var(--copper-shine),var(--copper),var(--copper-deep));color:#fff;border:none;border-radius:8px;font-family:var(--font-body);font-size:0.8rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;cursor:pointer;box-shadow:0 4px 16px rgba(184,115,51,0.35);">Sign In</button>
-      <div id="authModalError" style="display:none;margin-top:0.75rem;padding:0.625rem 0.875rem;background:rgba(220,38,38,0.06);border:1px solid rgba(220,38,38,0.2);border-radius:6px;font-size:0.75rem;color:#DC2626;text-align:center;"></div>
     </div>
   </div>
 
@@ -3152,49 +3171,9 @@
     }
 
     /* ── Profile Modal ───────────────────────── */
-    function openProfileOrAuth() {
-      if (window._currentUser) openProfileModal();
-      else openAuthModal();
-    }
-
-    function openProfileModal() {
-      const user = window._currentUser;
-      if (!user) { openAuthModal(); return; }
-      const profile = window._userProfile || {};
-      // Populate avatar in modal
-      const avatarImg = document.getElementById('profileModalAvatarImg');
-      const avatarInit = document.getElementById('profileModalAvatarInitials');
-      const photo = profile.photoURL || user.photoURL;
-      const name  = profile.displayName || user.displayName || '';
-      if (photo && avatarImg) { avatarImg.src = photo; avatarImg.style.display = 'block'; avatarInit.style.display = 'none'; }
-      else if (name && avatarInit) {
-        const parts = name.trim().split(' ');
-        avatarInit.textContent = (parts[0]?.[0]||'')+(parts[1]?.[0]||'');
-        avatarInit.style.display = 'flex'; if(avatarImg) avatarImg.style.display = 'none';
-      }
-      // Populate fields
-      const pName = document.getElementById('pName');
-      const pPhone = document.getElementById('pPhone');
-      const pEmail = document.getElementById('pEmail');
-      const pBday  = document.getElementById('pBirthday');
-      if (pName)  pName.value  = profile.displayName || user.displayName || '';
-      if (pPhone) pPhone.value = profile.phone || '';
-      if (pEmail) pEmail.value = user.email || '';
-      if (pBday)  pBday.value  = profile.birthday || '';
-      const pmName  = document.getElementById('profileModalName');
-      const pmEmail = document.getElementById('profileModalEmail');
-      if (pmName)  pmName.textContent  = profile.displayName || user.displayName || 'My Profile';
-      if (pmEmail) pmEmail.textContent = user.email || '';
-      // Reset to profile tab
-      switchProfileTab('profile');
-      const scrim = document.getElementById('profileModalScrim');
-      if (scrim) { scrim.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-    }
-
-    function closeProfileModal() {
-      const scrim = document.getElementById('profileModalScrim');
-      if (scrim) { scrim.style.display = 'none'; document.body.style.overflow = ''; }
-    }
+    // openProfileOrAuth, openProfileModal, closeProfileModal are all defined
+    // in the unified account modal section above — these are kept as no-ops for safety
+    
 
     function switchProfileTab(tab) {
       const pEl = document.getElementById('profileTabContentProfile');
@@ -3346,46 +3325,112 @@
 
     async function handleGuestSignOut() {
       try { await window._fb.signOut(window._fb.auth); } catch(e) {}
-      closeProfileModal();
       window._userProfile = {};
       updateNavAvatar();
+      // Stay in modal but switch to auth panel
+      _showAuthPanel();
+      setAuthTab('signin');
     }
 
-    /* ── Auth Modal ──────────────────────────── */
-    let _authTab = 'signin';
-    function openAuthModal() {
-      const scrim = document.getElementById('authModalScrim');
-      if (scrim) { scrim.style.display = 'flex'; document.body.style.overflow = 'hidden'; }
-      setAuthTab('signin');
-      const errEl = document.getElementById('authModalError');
-      if (errEl) errEl.style.display = 'none';
+    /* ── Unified Account Modal ────────────────── */
+    function openAccountModal() {
+      const scrim = document.getElementById('accountModalScrim');
+      if (!scrim) return;
+      scrim.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      // Show the right panel based on auth state
+      if (window._currentUser) {
+        _showProfilePanel();
+      } else {
+        _showAuthPanel();
+        setAuthTab('signin');
+        const errEl = document.getElementById('authModalError');
+        if (errEl) errEl.style.display = 'none';
+      }
     }
-    function closeAuthModal() {
-      const scrim = document.getElementById('authModalScrim');
+
+    function closeAccountModal() {
+      const scrim = document.getElementById('accountModalScrim');
       if (scrim) { scrim.style.display = 'none'; document.body.style.overflow = ''; }
       if (typeof updateNavAvatar === 'function') updateNavAvatar();
-      // If they signed in, auto-continue to pending booking
+      // If they just signed in and have a pending booking, continue
       if (window._currentUser && window._pendingBookRoomId) {
         const rid = window._pendingBookRoomId;
         window._pendingBookRoomId = null;
         handleBookRoom(rid);
       }
     }
+
+    function _showAuthPanel() {
+      const ap = document.getElementById('authPanel');
+      const pp = document.getElementById('profilePanel');
+      if (ap) ap.style.display = '';
+      if (pp) pp.style.display = 'none';
+    }
+
+    function _showProfilePanel() {
+      const ap = document.getElementById('authPanel');
+      const pp = document.getElementById('profilePanel');
+      if (ap) ap.style.display = 'none';
+      if (pp) pp.style.display = '';
+      // Populate profile fields
+      const user    = window._currentUser;
+      const profile = window._userProfile || {};
+      const photo   = profile.photoURL || user?.photoURL;
+      const name    = profile.displayName || user?.displayName || '';
+      // Avatar
+      const avatarImg  = document.getElementById('profileModalAvatarImg');
+      const avatarInit = document.getElementById('profileModalAvatarInitials');
+      if (photo && avatarImg) {
+        avatarImg.src = photo; avatarImg.style.display = 'block';
+        if (avatarInit) avatarInit.style.display = 'none';
+      } else if (name && avatarInit) {
+        const parts = name.trim().split(' ');
+        avatarInit.textContent = (parts[0]?.[0]||'')+(parts[1]?.[0]||'');
+        avatarInit.style.display = 'flex';
+        if (avatarImg) avatarImg.style.display = 'none';
+      }
+      // Header
+      const pmName  = document.getElementById('profileModalName');
+      const pmEmail = document.getElementById('profileModalEmail');
+      if (pmName)  pmName.textContent  = name || 'My Profile';
+      if (pmEmail) pmEmail.textContent = user?.email || '';
+      // Form fields
+      const pName  = document.getElementById('pName');
+      const pPhone = document.getElementById('pPhone');
+      const pEmail = document.getElementById('pEmail');
+      const pBday  = document.getElementById('pBirthday');
+      if (pName)  pName.value  = profile.displayName || user?.displayName || '';
+      if (pPhone) pPhone.value = profile.phone || '';
+      if (pEmail) pEmail.value = user?.email || '';
+      if (pBday)  pBday.value  = profile.birthday || '';
+      // Default to profile tab
+      switchProfileTab('profile');
+    }
+
+    // Aliases so existing code keeps working
+    function openProfileOrAuth()  { openAccountModal(); }
+    function openAuthModal()      { openAccountModal(); }
+    function closeAuthModal()     { closeAccountModal(); }
+    function openProfileModal()   { openAccountModal(); }
+    function closeProfileModal()  { closeAccountModal(); }
+
+    let _authTab = 'signin';
     function setAuthTab(tab) {
       _authTab = tab;
-      const si = document.getElementById('authTabSignIn');
-      const su = document.getElementById('authTabSignUp');
+      const si  = document.getElementById('authTabSignIn');
+      const su  = document.getElementById('authTabSignUp');
       const btn = document.getElementById('authSubmitBtn');
       const pass = document.getElementById('authPass');
-      if (!si||!su||!btn) return;
+      if (!si || !su || !btn) return;
       if (tab === 'signin') {
-        si.style.background='#F8F6F3'; si.style.color='var(--copper)';
-        su.style.background='#fff';    su.style.color='var(--text-muted)';
+        si.style.background = 'rgba(184,115,51,0.07)'; si.style.color = 'var(--copper)';
+        su.style.background = '#fff';                  su.style.color = 'var(--text-muted)';
         btn.textContent = 'Sign In';
         if (pass) pass.placeholder = 'Password';
       } else {
-        su.style.background='#F8F6F3'; su.style.color='var(--copper)';
-        si.style.background='#fff';    si.style.color='var(--text-muted)';
+        su.style.background = 'rgba(184,115,51,0.07)'; su.style.color = 'var(--copper)';
+        si.style.background = '#fff';                  si.style.color = 'var(--text-muted)';
         btn.textContent = 'Create Account';
         if (pass) pass.placeholder = 'Password (min 6 characters)';
       }
