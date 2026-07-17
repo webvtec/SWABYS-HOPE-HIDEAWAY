@@ -1040,10 +1040,10 @@
     .room-calendar-nav button:hover { border-color: var(--copper); color: var(--copper); }
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
     .calendar-day-label { text-align: center; font-size: 10px; font-weight: 600; color: var(--text-muted); padding: 4px; text-transform: uppercase; }
-    .calendar-day { text-align: center; padding: 6px 2px; font-size: var(--text-xs); border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s; color: var(--text-primary); }
-    .calendar-day.available { background: rgba(37,99,235,0.10); color: #1D4ED8; font-weight: 600; border: 1px solid rgba(37,99,235,0.22); }
-    .calendar-day.available:hover { background: rgba(37,99,235,0.18); }
-    .calendar-day.booked { background: rgba(148,163,184,0.10); color: #94A3B8; text-decoration: line-through; cursor: default; border: 1px solid transparent; font-weight: 400; }
+    .calendar-day { text-align: center; padding: 6px 2px; font-size: var(--text-xs); border-radius: var(--radius-sm); cursor: default; transition: all 0.2s; color: var(--text-primary); }
+    .calendar-day.available { background: rgba(37,99,235,0.10); color: #1D4ED8; font-weight: 600; border: 1px solid rgba(37,99,235,0.22); cursor: pointer; }
+    .calendar-day.available:hover { background: rgba(37,99,235,0.20); }
+    .calendar-day.booked { background: rgba(148,163,184,0.10); color: #94A3B8; text-decoration: line-through; cursor: not-allowed; border: 1px solid transparent; font-weight: 400; }
     .calendar-day.booked:hover, .calendar-day.empty:hover { background: transparent; }
     .room-card-actions { display: flex; gap: var(--space-sm); margin-top: auto; padding-top: var(--space-md); }
     .room-card-actions .btn-primary { flex: 1; justify-content: center; padding: 14px 24px; }
@@ -2554,14 +2554,20 @@
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
         const isPast = new Date(year, month, d) < new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const booked = isBooked(dateStr);
-        let style = 'text-align:center;padding:5px 2px;font-size:0.7rem;border-radius:4px;cursor:default;';
-        if (booked) style += 'background:rgba(220,38,38,0.08);color:#DC2626;text-decoration:line-through;';
-        else if (isPast) style += 'color:#CBD5E1;';
-        else style += 'color:var(--text-primary);background:rgba(184,115,51,0.05);';
-        html += `<div style="${style}">${d}</div>`;
+        let style = 'text-align:center;padding:5px 2px;font-size:0.7rem;border-radius:4px;cursor:default;position:relative;overflow:hidden;';
+        if (booked) {
+          style += 'background:rgba(148,163,184,0.12);color:#94A3B8;text-decoration:line-through;';
+          html += `<div style="${style}" title="Not available">${d}</div>`;
+        } else if (isPast) {
+          style += 'color:#CBD5E1;text-decoration:line-through;';
+          html += `<div style="${style}">${d}</div>`;
+        } else {
+          style += 'background:rgba(37,99,235,0.10);color:#1D4ED8;font-weight:600;border:1px solid rgba(37,99,235,0.22);';
+          html += `<div style="${style}">${d}</div>`;
+        }
       }
       html += '</div>';
-      html += '<div style="display:flex;gap:1rem;margin-top:0.625rem;font-size:0.65rem;color:var(--text-muted);"><span><span style="display:inline-block;width:10px;height:10px;background:rgba(220,38,38,0.15);border-radius:2px;margin-right:3px;"></span>Booked</span><span><span style="display:inline-block;width:10px;height:10px;background:rgba(184,115,51,0.1);border-radius:2px;margin-right:3px;"></span>Available</span></div>';
+      html += '<div style="display:flex;gap:1.25rem;margin-top:0.75rem;font-size:0.65rem;color:var(--text-muted);"><span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:12px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.25);border-radius:3px;"></span>Available</span><span style="display:flex;align-items:center;gap:4px;"><span style="display:inline-block;width:12px;height:12px;background:rgba(148,163,184,0.15);border-radius:3px;text-decoration:line-through;font-size:9px;line-height:12px;text-align:center;color:#94A3B8;"></span>Unavailable</span></div>';
       cal.innerHTML = html;
     }
 
