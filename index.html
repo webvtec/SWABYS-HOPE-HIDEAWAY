@@ -2284,11 +2284,11 @@
           <button id="authTabSignUp" onclick="setAuthTab('signup')" style="padding:0.55rem;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:#fff;color:var(--text-muted);border:none;cursor:pointer;font-family:var(--font-body);transition:all 0.18s;">Create Account</button>
         </div>
 
-        <input id="authEmail" type="email" placeholder="Email address" autocomplete="email"
+        <input id="authEmail" type="email" placeholder="Email address" autocomplete="email" aria-label="Email address"
           style="width:100%;padding:0.75rem 1rem;background:#FAF8F5;border:1.5px solid #E8E4DE;border-radius:8px;font-family:var(--font-body);font-size:0.85rem;color:var(--text-primary);outline:none;margin-bottom:0.625rem;"
           onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='#E8E4DE'"
           onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()" />
-        <input id="authPass" type="password" placeholder="Password" autocomplete="current-password"
+        <input id="authPass" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"
           style="width:100%;padding:0.75rem 1rem;background:#FAF8F5;border:1.5px solid #E8E4DE;border-radius:8px;font-family:var(--font-body);font-size:0.85rem;color:var(--text-primary);outline:none;margin-bottom:1rem;"
           onfocus="this.style.borderColor='var(--copper)'" onblur="this.style.borderColor='#E8E4DE'"
           onkeydown="if(event.key==='Enter')authSubmit()" />
@@ -2326,19 +2326,19 @@
         <div id="profileTabContentProfile" style="padding:0 1.75rem 1.75rem;">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.875rem;margin-bottom:0.875rem;">
             <div style="grid-column:1/-1;">
-              <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Full Name <span style="color:var(--copper);">*</span></label>
+              <label for="pName" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Full Name <span style="color:var(--copper);">*</span></label>
               <input id="pName" type="text" placeholder="Your full name" class="form-input" style="width:100%;" />
             </div>
             <div>
-              <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Phone</label>
+              <label for="pPhone" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Phone</label>
               <input id="pPhone" type="tel" placeholder="+1 (876) …" class="form-input" style="width:100%;" />
             </div>
             <div>
-              <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Birthday <span style="font-weight:400;color:var(--text-muted);font-size:0.65rem;">(optional)</span></label>
+              <label for="pBirthday" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Birthday <span style="font-weight:400;color:var(--text-muted);font-size:0.65rem;">(optional)</span></label>
               <input id="pBirthday" type="date" class="form-input" style="width:100%;" />
             </div>
             <div style="grid-column:1/-1;">
-              <label style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Email</label>
+              <label for="pEmail" style="display:block;font-size:0.72rem;font-weight:600;color:var(--text-primary);margin-bottom:0.375rem;letter-spacing:0.04em;">Email</label>
               <input id="pEmail" type="email" class="form-input" style="width:100%;opacity:0.65;cursor:default;" readonly />
             </div>
           </div>
@@ -2393,11 +2393,11 @@
         <div class="booking-price-summary" id="bmPriceSummary" style="display:none;"></div>
         <!-- Guest info -->
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Full Name <span class="required">*</span></label><input class="form-input" id="bmName" placeholder="Your full name" /></div>
-          <div class="form-group"><label class="form-label">Phone <span class="required">*</span></label><input type="tel" class="form-input" id="bmPhone" placeholder="+1 (876) ..." /></div>
+          <div class="form-group"><label for="bmName" class="form-label">Full Name <span class="required">*</span></label><input class="form-input" id="bmName" placeholder="Your full name" /></div>
+          <div class="form-group"><label for="bmPhone" class="form-label">Phone <span class="required">*</span></label><input type="tel" class="form-input" id="bmPhone" placeholder="+1 (876) ..." /></div>
         </div>
-        <div class="form-group"><label class="form-label">Email <span class="required">*</span></label><input type="email" class="form-input" id="bmEmail" placeholder="you@email.com" /></div>
-        <div class="form-group"><label class="form-label">Special Requests <span style="font-weight:400;font-size:var(--text-xs);color:var(--text-muted);">(optional)</span></label><textarea class="form-textarea" id="bmRequests" placeholder="Any special requests or notes?" style="min-height:70px;"></textarea></div>
+        <div class="form-group"><label for="bmEmail" class="form-label">Email <span class="required">*</span></label><input type="email" class="form-input" id="bmEmail" placeholder="you@email.com" /></div>
+        <div class="form-group"><label for="bmRequests" class="form-label">Special Requests <span style="font-weight:400;font-size:var(--text-xs);color:var(--text-muted);">(optional)</span></label><textarea class="form-textarea" id="bmRequests" placeholder="Any special requests or notes?" style="min-height:70px;"></textarea></div>
         <button class="btn-primary form-submit" id="bmSubmitBtn" onclick="submitBooking()" style="width:100%;justify-content:center;margin-top:0.5rem;">
           Confirm Booking
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -2412,11 +2412,11 @@
       <p class="review-modal-sub">Your honest review helps other guests and helps us grow.</p>
       <div id="reviewFormWrap">
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Your Name <span class="required">*</span></label><input class="form-input" id="rvName" placeholder="e.g. Sarah M." /></div>
+          <div class="form-group"><label for="rvName" class="form-label">Your Name <span class="required">*</span></label><input class="form-input" id="rvName" placeholder="e.g. Sarah M." /></div>
         </div>
         <div class="form-group">
           <label class="form-label">Your Rating <span class="required">*</span></label>
-          <div class="star-picker" id="starPicker">
+          <div class="star-picker" id="starPicker" role="group" aria-label="Star rating">
             <span class="star-pick" data-val="1" onclick="setReviewStar(1)">★</span>
             <span class="star-pick" data-val="2" onclick="setReviewStar(2)">★</span>
             <span class="star-pick" data-val="3" onclick="setReviewStar(3)">★</span>
@@ -2425,7 +2425,7 @@
           </div>
           <div id="starLabel" style="font-size:0.75rem;color:var(--text-muted);margin-top:4px;"></div>
         </div>
-        <div class="form-group"><label class="form-label">Your Review <span class="required">*</span></label><textarea class="form-textarea" id="rvText" placeholder="Tell us about your stay — what made it special?" style="min-height:110px;"></textarea></div>
+        <div class="form-group"><label for="rvText" class="form-label">Your Review <span class="required">*</span></label><textarea class="form-textarea" id="rvText" placeholder="Tell us about your stay — what made it special?" style="min-height:110px;"></textarea></div>
         <button class="btn-primary form-submit" onclick="submitReview()" style="width:100%;justify-content:center;">
           Post Review
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
@@ -2460,19 +2460,19 @@
 
         <!-- Form fields -->
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Full Name <span class="required">*</span></label><input type="text" class="form-input" placeholder="Your full name" id="formName" /></div>
-          <div class="form-group"><label class="form-label">Phone Number <span class="required">*</span></label><input type="tel" class="form-input" placeholder="+1 (876) ..." id="formPhone" /></div>
+          <div class="form-group"><label for="formName" class="form-label">Full Name <span class="required">*</span></label><input type="text" class="form-input" placeholder="Your full name" id="formName" /></div>
+          <div class="form-group"><label for="formPhone" class="form-label">Phone Number <span class="required">*</span></label><input type="tel" class="form-input" placeholder="+1 (876) ..." id="formPhone" /></div>
         </div>
-        <div class="form-group"><label class="form-label">Email Address <span class="required">*</span></label><input type="email" class="form-input" placeholder="you@email.com" id="formEmail" /></div>
+        <div class="form-group"><label for="formEmail" class="form-label">Email Address <span class="required">*</span></label><input type="email" class="form-input" placeholder="you@email.com" id="formEmail" /></div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Event Type <span class="required">*</span></label><select class="form-select" id="formEventType" onchange="toggleOtherEventType(this.value)"><option value="" disabled selected>Select event type</option><option value="wedding">Wedding</option><option value="corporate">Corporate Conference</option><option value="birthday">Birthday Celebration</option><option value="reunion">Family Reunion</option><option value="retreat">Retreat / Workshop</option><option value="other">Other</option></select></div>
-          <div class="form-group"><label class="form-label">Estimated Guest Count <span class="required">*</span></label><input type="number" class="form-input" placeholder="e.g. 120" id="formGuests" min="1" max="500" /></div>
+          <div class="form-group"><label for="formEventType" class="form-label">Event Type <span class="required">*</span></label><select class="form-select" id="formEventType" onchange="toggleOtherEventType(this.value)"><option value="" disabled selected>Select event type</option><option value="wedding">Wedding</option><option value="corporate">Corporate Conference</option><option value="birthday">Birthday Celebration</option><option value="reunion">Family Reunion</option><option value="retreat">Retreat / Workshop</option><option value="other">Other</option></select></div>
+          <div class="form-group"><label for="formGuests" class="form-label">Estimated Guest Count <span class="required">*</span></label><input type="number" class="form-input" placeholder="e.g. 120" id="formGuests" min="1" max="500" /></div>
         </div>
         <div class="form-group" id="otherEventTypeWrap" style="display:none;">
-          <label class="form-label">Please describe your event <span class="required">*</span></label>
+          <label for="formOtherEventType" class="form-label">Please describe your event <span class="required">*</span></label>
           <input type="text" class="form-input" placeholder="e.g. Graduation party, baby shower, anniversary..." id="formOtherEventType" />
         </div>
-        <div class="form-group"><label class="form-label">Special Requests or Details</label><textarea class="form-textarea" placeholder="Tell us about your vision for the event..." id="formRequests" style="min-height:80px;"></textarea></div>
+        <div class="form-group"><label for="formRequests" class="form-label">Special Requests or Details</label><textarea class="form-textarea" placeholder="Tell us about your vision for the event..." id="formRequests" style="min-height:80px;"></textarea></div>
         <button class="btn-primary form-submit" id="eiSubmitBtn" onclick="handleFormSubmit()" style="width:100%;justify-content:center;margin-top:0.5rem;">
           Submit Inquiry
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
