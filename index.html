@@ -4465,6 +4465,10 @@
   // a lookAt-locked target here keeps them centered regardless of aspect ratio.
   const ringBaseX = 0;
   const ringBaseY = 0.4;
+  // Narrow phone screens narrow the camera's horizontal FOV (vertical FOV is
+  // fixed), which visually blows the key up far bigger than on desktop —
+  // one scale factor keeps the mesh, its glow, and its hold-hitbox in sync.
+  const keyScale = isMobile ? 0.6 : 1;
 
   /* ═══════ THE MASTER KEY ═══════
      A realistic antique brass master key built from primitives:
@@ -4542,6 +4546,7 @@
   // roll lays it flat with the bow pointing right.
   keyGroup.rotation.set(0, 0, -Math.PI / 2);
   keyGroup.position.set(ringBaseX, ringBaseY, 0.2);
+  keyGroup.scale.setScalar(keyScale);
   scene.add(keyGroup);
 
   // Copper glow halo — soft additive light bloom behind the ring to bring it out
@@ -4559,7 +4564,7 @@
     map: makeGlowTexture(), color:0xE0B24C, transparent:true, opacity:0.5,
     blending:THREE.AdditiveBlending, depthWrite:false
   }));
-  keyGlow.scale.set(8, 8, 1);
+  keyGlow.scale.set(8 * keyScale, 8 * keyScale, 1);
   keyGlow.position.copy(keyGroup.position);
   keyGlow.position.z -= 0.7;
   scene.add(keyGlow);
@@ -4612,6 +4617,16 @@
   }
   refreshHeroCache();
 
+  // Hard clip boundary: the key must never visually cross above the hairline
+  // sitting directly over "This Key Opens New Doors" (escapeBanner's own
+  // border-top) or below the matching one at the top of .intro right after
+  // it. NOTE: this is deliberately NOT .features's own top edge — that line
+  // sits far above, over the header/feature-grid content, and by the time
+  // the key is actually on screen that edge has long since scrolled past,
+  // which let the key float freely into that empty space above its real line.
+  let clipTopEl = document.getElementById('escapeBanner');
+  let clipBottomEl = document.querySelector('.intro');
+
   function loop(){
     requestAnimationFrame(loop);
     if (!visible) return;
@@ -4650,7 +4665,10 @@
     // slide-in, once triggered it plays out smoothly over its own fixed duration —
     // so scrolling fast straight to the bottom doesn't just snap it from small to
     // big instantly, it still takes its time closing the distance.
-    if (sideAnimProgress >= 1 && window.scrollY > approachCentered) depthAnimStarted = true;
+    // NOTE: once the slide-in finishes, the forward push starts on its own —
+    // no additional scrolling required. The visitor only has to start
+    // scrolling once; from there the whole entrance plays itself out.
+    if (sideAnimProgress >= 1) depthAnimStarted = true;
     else if (window.scrollY <= approachStart * 0.4) { depthAnimStarted = false; depthAnimProgress = 0; }
     if (depthAnimStarted) depthAnimProgress = Math.min(1, depthAnimProgress + 0.018);
     const depthEase = depthAnimProgress*depthAnimProgress*(3 - 2*depthAnimProgress); // smoothstep
@@ -4717,7 +4735,7 @@
       projV.set(ringBaseX, ringBaseY, keyZ).project(camera);
       const ndcZ = projV.z;
       const distT = Math.max(0.5, camera.position.z - keyZ);
-      const halfKeyPx = 0.95 * (window.innerHeight / (2 * distT * 0.4663));
+      const halfKeyPx = 0.95 * keyScale * (window.innerHeight / (2 * distT * 0.4663));
       const desiredScreenY = Math.max(window.innerHeight * 0.3,
         Math.min(window.innerHeight - halfKeyPx - 16, cachedTextBottom + halfKeyPx + 28));
       const ndcY = -((desiredScreenY / window.innerHeight) * 2 - 1);
@@ -4762,11 +4780,12 @@
         projV.project(camera);
         const sx = ( projV.x * 0.5 + 0.5) * window.innerWidth;
         const sy = (-projV.y * 0.5 + 0.5) * window.innerHeight;
-        // key spans ~4.3 units long × ~1.7 tall — convert to pixels at its depth
+        // key spans ~4.3 units long × ~1.8 tall at scale 1 — convert to pixels
+        // at its depth, honoring the same keyScale the mesh itself uses
         const dist = Math.max(0.5, camera.position.z - keyWorldZ);
         const pxPerUnit = window.innerHeight / (2 * dist * 0.4663);   // fov 50°
-        const wPx = Math.max(140, Math.min(620, 4.3 * pxPerUnit));
-        const hPx = Math.max(80,  Math.min(340, 1.8 * pxPerUnit));
+        const wPx = Math.max(140, Math.min(620, 4.3 * keyScale * pxPerUnit));
+        const hPx = Math.max(80,  Math.min(340, 1.8 * keyScale * pxPerUnit));
         if (Math.abs(wPx - (loop._holdW || 0)) > 3 || Math.abs(hPx - (loop._holdH || 0)) > 3) {
           holdUI.style.width = wPx + 'px';
           holdUI.style.height = hPx + 'px';
@@ -4817,6 +4836,16 @@
     if (co !== loop._lastCo) { canvas.style.opacity = co; loop._lastCo = co; }
     const po = Math.round(reveal * 100) / 100;
     if (photoBg && po !== loop._lastPo) { photoBg.style.opacity = po; loop._lastPo = po; }
+
+    // Hard barrier: clip the canvas itself to the band between the hairline
+    // above the CTA text and the one at the top of .intro, so the key can
+    // never render above or below that band, no matter what.
+    if (clipTopEl && clipBottomEl && (frame % 4) === 0) {
+      const topPx = Math.max(0, clipTopEl.getBoundingClientRect().top);
+      const bottomPx = Math.max(0, window.innerHeight - clipBottomEl.getBoundingClientRect().top);
+      const clip = 'inset(' + topPx.toFixed(1) + 'px 0px ' + bottomPx.toFixed(1) + 'px 0px)';
+      if (clip !== loop._lastClip) { canvas.style.clipPath = clip; canvas.style.webkitClipPath = clip; loop._lastClip = clip; }
+    }
 
     // Big perf wins on low-end devices:
     // 1) never render while the scene is invisible (top of page or scrolled past)
