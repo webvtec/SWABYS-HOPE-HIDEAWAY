@@ -505,11 +505,6 @@
     .img-unveil.unveiled { clip-path: inset(0 0 0 0 round 0px); opacity: 1; transform: scale(1); }
     @media (prefers-reduced-motion: reduce) { .img-unveil { clip-path:none; opacity:1; transform:none; } }
 
-    /* ═══ 3D SILK BACKGROUND ═══ */
-    /* The key layer rides ABOVE the page content (photos, feature cards, story
-       text) so the key is never hidden behind anything — it's click-through,
-       and it sits safely below the nav (1000), sticky CTA (900) and cursor. */
-    #silk-bg { position: fixed; inset: 0; width: 100%; height: 100vh; z-index: 40; pointer-events: none; }
     /* ── LIGHT LIVING BACKDROP ──
        Replaces the old dark photo. A warm cream base with two enormous,
        heavily-blurred colour fields that drift very slowly — reads as soft
@@ -920,20 +915,22 @@
     }
     .hero-bg picture, .hero-bg img { width: 100%; height: 100%; object-fit: cover; }
 
-    /* Hero photo fades in softly with a slow settle — no hard pop-in */
+    /* Hero photo fades in slowly with a soft blur-to-sharp settle — no color filter or tint over the image */
     .hero-bg img {
       opacity: 0;
-      transform: scale(1.05);
-      transition: opacity 1.4s ease-out, transform 3.2s cubic-bezier(0.22,1,0.36,1);
-      will-change: opacity, transform;
+      transform: scale(1.08);
+      filter: blur(8px);
+      transition: opacity 2.4s cubic-bezier(0.22,1,0.36,1), transform 4.5s cubic-bezier(0.22,1,0.36,1), filter 2.4s cubic-bezier(0.22,1,0.36,1);
+      will-change: opacity, transform, filter;
     }
     .hero-bg img.hero-img-in {
       opacity: 1;
       transform: scale(1);
+      filter: blur(0);
     }
     @media (prefers-reduced-motion: reduce) {
-      .hero-bg img { transform: none; transition: opacity 0.8s ease-out; }
-      .hero-bg img.hero-img-in { transform: none; }
+      .hero-bg img { transform: none; filter: none; transition: opacity 1s ease-out; }
+      .hero-bg img.hero-img-in { transform: none; filter: none; }
     }
 
 
@@ -1077,7 +1074,9 @@
        ═══════════════════════════════════════════ */
     .features {
       padding: var(--space-3xl) 0 var(--space-5xl);
-      background: rgba(255,253,250,0.58);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 45%),
+        rgba(35,20,10,0.92);
       backdrop-filter: blur(20px) saturate(1.25); -webkit-backdrop-filter: blur(20px) saturate(1.25);
       position: relative;
     }
@@ -1088,7 +1087,7 @@
 
     .features-header { text-align: center; margin-bottom: var(--space-2xl); }
     .features-header .section-eyebrow { justify-content: center; }
-    .features-header .section-title { font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl)); margin-bottom: var(--space-md); font-weight: 400; color: var(--text-primary); }
+    .features-header .section-title { font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl)); margin-bottom: var(--space-md); font-weight: 400; color: var(--lux-white); }
     .features-header .section-subtitle { margin: 0 auto; color: var(--text-secondary); }
 
     .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-lg); }
@@ -1172,8 +1171,10 @@
        ═══════════════════════════════════════════ */
     .intro {
       padding: var(--space-2xl) 0;
-      background: rgba(255,253,250,0.55);
-      backdrop-filter: blur(18px) saturate(1.25); -webkit-backdrop-filter: blur(18px) saturate(1.25);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 45%),
+        rgba(35,20,10,0.92);
+      backdrop-filter: blur(20px) saturate(1.25); -webkit-backdrop-filter: blur(20px) saturate(1.25);
       position: relative;
       overflow: hidden;
     }
@@ -1188,7 +1189,7 @@
     .intro-grid { max-width: 720px; margin: 0 auto; text-align: center; }
     .intro-text { max-width: 720px; margin: 0 auto; }
     .intro-text .section-eyebrow { justify-content: center; }
-    .intro-text .section-title { font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl)); margin-bottom: var(--space-lg); color: var(--text-primary); font-weight: 400; }
+    .intro-text .section-title { font-size: clamp(var(--text-3xl), 3.5vw, var(--text-5xl)); margin-bottom: var(--space-lg); color: var(--lux-white); font-weight: 400; }
     .intro-body {
       color: #FFFFFF;
       font-family: var(--font-accent);
@@ -1204,8 +1205,10 @@
        ACCENT BANNER
        ═══════════════════════════════════════════ */
     .accent-banner {
-      background: rgba(255,253,250,0.5);
-      backdrop-filter: blur(18px) saturate(1.25); -webkit-backdrop-filter: blur(18px) saturate(1.25);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 45%),
+        rgba(35,20,10,0.88);
+      backdrop-filter: blur(20px) saturate(1.25); -webkit-backdrop-filter: blur(20px) saturate(1.25);
       padding: var(--space-4xl) 0; position: relative;
       border-top: 1px solid rgba(184,115,51,0.15);
       border-bottom: 1px solid rgba(184,115,51,0.15);
@@ -1215,9 +1218,9 @@
       background: linear-gradient(90deg, transparent, var(--copper), transparent);
     }
     .accent-banner-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-xl); }
-    .accent-banner-text { color: var(--text-primary); }
-    .accent-banner-text h3 { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 400; margin-bottom: var(--space-xs); }
-    .accent-banner-text p { font-family: var(--font-accent); font-size: var(--text-lg); color: var(--text-secondary); font-style: italic; }
+    .accent-banner-text { color: var(--lux-white); }
+    .accent-banner-text h3 { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 400; margin-bottom: var(--space-xs); color: var(--lux-white); }
+    .accent-banner-text p { font-family: var(--font-accent); font-size: var(--text-lg); color: rgba(232,220,200,0.85); font-style: italic; }
 
     /* ═══════════════════════════════════════════
        FOOTER
@@ -1369,6 +1372,9 @@
        PAGE TRANSITIONS
        ═══════════════════════════════════════════ */
     .page { display: none; }
+    #page-home {
+      background: #2A180C;
+    }
     .page.active { display: block; animation: pageIn 0.5s var(--ease-out); }
     @keyframes pageIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -1538,61 +1544,20 @@
        Beat 3: unlock → golden era-flash, the key storms through the screen,
                hold button collapses, the two door buttons sweep in. */
     .escape-text h3 {
-      opacity: 0;
-      transform: translateY(22px);
-      transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s, transform 0.7s cubic-bezier(0.22,1,0.36,1) 0.1s;
+      opacity: 1;
+      transform: none;
     }
     .escape-text p {
-      opacity: 0;
-      transform: translateY(18px);
-      transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s, transform 0.7s cubic-bezier(0.22,1,0.36,1) 0.3s;
-    }
-    .escape-banner.escape-in .escape-text h3,
-    .escape-banner.escape-in .escape-text p {
       opacity: 1;
       transform: none;
     }
 
-    /* Hold target — a completely invisible hitbox the 3D scene keeps glued to
-       the whole key's on-screen footprint. No ring, no outline, no label —
-       pressing ANYWHERE on the key itself starts the hold. All feedback is
-       the key: it turns in its lock and its glow swells as you hold. */
-    /* Reserved space in the layout where the key "lives" — like an image slot.
-       The 3D canvas draws the key over this exact rect every frame, so the key
-       scrolls in lock-step with the surrounding text. */
-    .key-slot {
-      height: clamp(190px, 30vh, 300px);
-      margin-top: var(--space-lg);
-      pointer-events: none;
-    }
-    @media (max-width: 768px) {
-      .key-slot { height: clamp(150px, 24vh, 220px); }
-    }
-    .key-hold-target {
-      position: fixed;
-      left: 0; top: 0;
-      width: 300px; height: 140px;   /* resized live by the 3D scene */
-      margin: 0; padding: 0;
-      border: none;
-      background: transparent;
-      border-radius: 16px;
-      z-index: 60;                 /* above the key canvas (40), below nav (1000) */
-      opacity: 0;
-      pointer-events: none;
-      cursor: pointer;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .key-hold-target.show { opacity: 1; pointer-events: auto; }
-    .key-hold-target:focus-visible { outline: 2px solid rgba(226,192,106,0.7); outline-offset: 4px; }
     /* subline reads warm ink on the light backdrop */
-    #escapeSub { color: var(--copper-deep) !important; }
+    #escapeSub { color: rgba(232,210,180,0.9) !important; }
     /* headline evolves into the new-era line */
     .escape-banner.unlocked .escape-text h3 { text-shadow: 0 0 32px rgba(226,192,106,0.55); }
 
-    /* Door buttons — hidden until unlocked, then sweep in like doors opening */
+    /* Door buttons — sweep in like doors opening */
     .escape-btn-wrap {
       opacity: 0;
       transform: translateY(24px) scale(0.96);
@@ -1609,37 +1574,7 @@
     @keyframes doorSweepL { from { opacity:0; transform: translateX(-36px); } to { opacity:1; transform:none; } }
     @keyframes doorSweepR { from { opacity:0; transform: translateX(36px); } to { opacity:1; transform:none; } }
 
-    /* Golden era-flash — a full-screen radial burst + shockwave the moment it unlocks */
-    .era-flash {
-      position: fixed; inset: 0;
-      z-index: 90;
-      pointer-events: none;
-      opacity: 0;
-      background: radial-gradient(circle at 50% 55%, rgba(255,236,180,0.95) 0%, rgba(226,178,76,0.55) 26%, rgba(184,115,51,0.18) 48%, transparent 70%);
-    }
-    .era-flash.burst { animation: eraBurst 1.1s cubic-bezier(0.16,1,0.3,1) forwards; }
-    .era-flash::after {
-      content: '';
-      position: absolute; left: 50%; top: 55%;
-      width: 12px; height: 12px;
-      border-radius: 50%;
-      border: 2px solid rgba(255,230,170,0.9);
-      transform: translate(-50%,-50%) scale(0);
-      opacity: 0;
-    }
-    .era-flash.burst::after { animation: eraShockwave 1.1s cubic-bezier(0.16,1,0.3,1) forwards; }
-    @keyframes eraBurst {
-      0%   { opacity: 0; }
-      12%  { opacity: 1; }
-      100% { opacity: 0; }
-    }
-    @keyframes eraShockwave {
-      0%   { transform: translate(-50%,-50%) scale(0); opacity: 0.9; }
-      100% { transform: translate(-50%,-50%) scale(90); opacity: 0; border-width: 1px; }
-    }
     @media (prefers-reduced-motion: reduce) {
-      .era-flash.burst { animation: none; opacity: 0; }
-      .era-flash.burst::after { animation: none; }
       .escape-banner.unlocked .btn-pulse-1,
       .escape-banner.unlocked .btn-pulse-2 { animation: none; }
     }
@@ -2328,7 +2263,6 @@
 </head>
 <body>
 <div id="silk-bg-photo"></div>
-<canvas id="silk-bg"></canvas>
 <div class="cursor-dot" id="cursorDot"></div>
 <div class="cursor-ring" id="cursorRing"></div>
 
@@ -2425,6 +2359,9 @@
 
     <!-- HERO -->
     <section class="hero">
+      <div class="hero-bg">
+        <img id="heroImg" onload="this.classList.add('hero-img-in')" src="https://firebasestorage.googleapis.com/v0/b/swabys-hope-hideaway.firebasestorage.app/o/IMG_18.png?alt=media&token=d4a83d37-ee7e-425a-a3ac-4ea10334e6b2" alt="Swaby's Hope Hideaway room interior" />
+      </div>
       <div class="hero-content">
         <h1 class="hero-tagline reveal">Use Our <em>Hideaway</em><br/>for Your Getaway</h1>
         <div class="hero-actions reveal" style="transition-delay:0.15s;">
@@ -2452,11 +2389,11 @@
           <!-- Loaded dynamically from Firebase -->
           <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);font-style:italic;">Loading features...</div>
         </div>
-        <!-- CTA below images — HOLD THE KEY ritual -->
-        <div class="accent-banner-inner escape-banner" id="escapeBanner" style="margin-top:var(--space-3xl);padding-top:var(--space-2xl);border-top:1px solid rgba(184,115,51,0.15);">
+        <!-- CTA below images -->
+        <div class="accent-banner-inner escape-banner unlocked" id="escapeBanner" style="margin-top:var(--space-3xl);padding-top:var(--space-2xl);border-top:1px solid rgba(184,115,51,0.15);">
           <div class="accent-banner-text escape-text">
-            <h3 id="escapeTitle">This Key Opens New Doors</h3>
-            <p id="escapeSub">Press &amp; hold the golden key to open yours.</p>
+            <h3 id="escapeTitle">Ready to Escape the Ordinary?</h3>
+            <p id="escapeSub">Your hideaway is waiting.</p>
           </div>
           <div class="escape-btn-wrap" id="escapeBtnWrap" style="display:flex;gap:0.75rem;flex-wrap:wrap;">
             <button class="btn-escape-solid btn-pulse-1" onclick="navigateTo('rooms')">Book a Room
@@ -2467,15 +2404,6 @@
             </button>
           </div>
         </div>
-        <!-- The key's home in the document flow — the 3D key renders exactly
-             over this slot every frame, so it scrolls with the page like a
-             photo. It only comes alive (turns/glows) while being held. -->
-        <div class="key-slot" id="keyAnchor" aria-hidden="true"></div>
-        <!-- Full-screen golden burst played the instant the key turns -->
-        <div class="era-flash" id="eraFlash" aria-hidden="true"></div>
-        <!-- Invisible hold zone that rides the WHOLE key — press anywhere on
-             the key itself to start the hold; there is no visible ring or label -->
-        <button class="key-hold-target" id="keyHoldBtn" aria-label="Press and hold the key to unlock"></button>
       </div>
     </section>
 
@@ -3417,10 +3345,8 @@
       document.documentElement.style.scrollBehavior = 'auto';
       window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
       setTimeout(() => { document.documentElement.style.scrollBehavior = ''; }, 60);
-      // The 3D key scene (and its photo background) lives on the home page only
-      const silkBg = document.getElementById('silk-bg');
+      // The photo background lives on the home page only
       const silkBgPhoto = document.getElementById('silk-bg-photo');
-      if (silkBg) silkBg.style.display = (page === 'home') ? '' : 'none';
       if (silkBgPhoto) silkBgPhoto.style.display = (page === 'home') ? '' : 'none';
       // Footer lives on the home page only
       const footer = document.getElementById('siteFooter');
@@ -4097,97 +4023,6 @@
       window.dispatchEvent(new Event('scroll'));
     });
   
-    /* ── HOLD-THE-KEY: banner reveal + press-and-hold on the key itself ── */
-    (function(){
-      var banner  = document.getElementById('escapeBanner');
-      var holdBtn = document.getElementById('keyHoldBtn');
-      var flash   = document.getElementById('eraFlash');
-      var title   = document.getElementById('escapeTitle');
-      var sub     = document.getElementById('escapeSub');
-      if (!banner || !holdBtn) return;
-
-      var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      var HOLD_MS = reduceMotion ? 350 : 1000;
-      // Fresh every visit: refreshing the page brings the ritual (and the
-      // hold prompt) back — nothing is persisted.
-      var unlocked = false;
-      var holding = false, progress = 0, raf = 0, lastT = 0;
-
-      function doUnlock(){
-        if (unlocked) return;
-        unlocked = true;
-        holding = false;
-        window._keyHoldUIWanted = false;   // hide the on-key hold ring
-        // Beat 3 — the new era: flash, shockwave, key storms through, doors appear
-        if (flash && !reduceMotion) {
-          flash.classList.remove('burst');
-          void flash.offsetWidth;         // restart the animation cleanly
-          flash.classList.add('burst');
-        }
-        if (window._keyStorm) window._keyStorm();   // 3D key spins up and blasts past the camera
-        banner.classList.add('unlocked');
-        if (title) title.textContent = 'A Whole New Era Opens';
-        if (sub) sub.textContent = 'Step through — which door is yours?';
-        if (navigator.vibrate) { try { navigator.vibrate([18, 40, 60]); } catch(e){} }
-      }
-
-      function tick(now){
-        if (!lastT) lastT = now;
-        var dt = now - lastT; lastT = now;
-        if (holding) progress = Math.min(1, progress + dt / HOLD_MS);
-        else         progress = Math.max(0, progress - dt / 500);   // eases back if released early
-        // feedback is the key itself: it turns and glows with the hold
-        if (window._keyHold) window._keyHold(progress);             // 3D key turns with the hold
-        if (progress >= 1) { doUnlock(); return; }
-        if (progress > 0 || holding) raf = requestAnimationFrame(tick);
-        else { raf = 0; lastT = 0; }
-      }
-      function startHold(e){
-        if (unlocked) return;
-        if (e && e.cancelable && e.type !== 'keydown') e.preventDefault();
-        holding = true;
-        holdBtn.classList.add('holding');
-        if (!raf) { lastT = 0; raf = requestAnimationFrame(tick); }
-      }
-      function endHold(){
-        holding = false;
-        holdBtn.classList.remove('holding');
-      }
-
-      holdBtn.addEventListener('pointerdown', startHold);
-      window.addEventListener('pointerup', endHold, { passive: true });
-      window.addEventListener('pointercancel', endHold, { passive: true });
-      holdBtn.addEventListener('pointerleave', endHold);
-      // keyboard: Enter/Space hold-to-fill, same ritual, fully accessible
-      holdBtn.addEventListener('keydown', function(e){
-        if ((e.key === 'Enter' || e.key === ' ') && !e.repeat) { e.preventDefault(); startHold(e); }
-      });
-      holdBtn.addEventListener('keyup', function(e){
-        if (e.key === 'Enter' || e.key === ' ') endHold();
-      });
-      holdBtn.addEventListener('contextmenu', function(e){ e.preventDefault(); }); // long-press menu on mobile
-
-      var obs = new IntersectionObserver(function(entries){
-        entries.forEach(function(e){
-          if (e.isIntersecting) {
-            banner.classList.add('escape-in');
-            // Ask the 3D scene to show the hold ring on the key (it only obliges
-            // once the key has actually arrived and isn't storming/gone)
-            if (!unlocked) window._keyHoldUIWanted = true;
-          } else {
-            banner.classList.remove('escape-in');
-            window._keyHoldUIWanted = false;
-            endHold();
-          }
-        });
-      }, { threshold: 0.35 });
-      obs.observe(banner);
-
-      // The 3D key only lives around this section — hand its element to the scene
-      if (window._keySetZone) window._keySetZone(banner);
-      else window._pendingKeyZone = banner;
-    })();
-
   </script>
 
 
@@ -4328,455 +4163,5 @@
 })();
 </script>
 
-<!-- ═══════════════ LIQUID COPPER SILK — 3D BACKGROUND ═══════════════ -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-(function(){
-  if (!window.THREE) return;
-  const canvas = document.getElementById('silk-bg');
-  if (!canvas) return;
-  let renderer;
-  // Low-end friendly: fewer cores / small screens get lighter geometry + lower resolution
-  const lowEnd = (navigator.hardwareConcurrency || 8) <= 4 || window.innerWidth < 768;
-  try {
-    renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: !lowEnd,                 // AA is the single biggest GPU cost on weak devices
-      alpha: true,
-      powerPreference: 'high-performance',
-      stencil: false,
-      depth: true
-    });
-  }
-  catch(e){ canvas.style.display='none'; return; }
-  // Mobile gets a still liquid background (frozen shader) with just the key animating,
-  // recentred closer to the middle of the narrow viewport. Desktop keeps everything moving.
-  const isMobile = window.innerWidth < 768;
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, lowEnd ? 1.0 : 1.5));
-
-  const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xF6EFE6, 8, 30);
-  // Camera is COMPLETELY STATIC — no scroll drift, no mouse parallax.
-  // The key holds its position on the page purely by tracking its layout slot.
-  const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 100);
-  camera.position.set(0, 0.5, 7);
-  camera.lookAt(0, 0.5, 0);
-
-  // Dark studio env — light streaks give the chrome its liquid look
-  function makeEnv(){
-    const s=512, c=document.createElement('canvas'); c.width=s; c.height=s;
-    const x=c.getContext('2d');
-    const g=x.createLinearGradient(0,0,0,s);
-    g.addColorStop(0,'#34302c'); g.addColorStop(0.42,'#100e0c'); g.addColorStop(1,'#040303');
-    x.fillStyle=g; x.fillRect(0,0,s,s);
-    function band(px,w,color){ const b=x.createLinearGradient(px,0,px+w,0);
-      b.addColorStop(0,'rgba(0,0,0,0)'); b.addColorStop(.5,color); b.addColorStop(1,'rgba(0,0,0,0)');
-      x.fillStyle=b; x.fillRect(px,0,w,s); }
-    band(50,105,'rgba(255,250,240,1.0)');
-    band(235,55,'rgba(235,225,210,0.62)');
-    band(350,125,'rgba(255,244,228,0.85)');
-    band(175,32,'rgba(232,168,124,0.62)');
-    band(468,42,'rgba(184,115,51,0.58)');
-    band(300,26,'rgba(255,255,250,0.55)');
-    const t=new THREE.CanvasTexture(c);
-    t.mapping=THREE.EquirectangularReflectionMapping;
-    return t;
-  }
-  scene.environment = makeEnv();
-
-  scene.add(new THREE.AmbientLight(0x14100c, 1));
-  const key = new THREE.DirectionalLight(0xfff3e4, 1.4); key.position.set(-4,7,5); scene.add(key);
-  const copperGlow = new THREE.PointLight(0xC98040, 5.2, 22); copperGlow.position.set(3,1.5,3); scene.add(copperGlow);
-  const coolRim = new THREE.PointLight(0x7d8fa3, 1.4, 16); coolRim.position.set(-5,-1,3); scene.add(coolRim);
-  // Dedicated glint light for the star — makes its facets flash white as it turns
-  const starLight = new THREE.PointLight(0xffffff, 1.6, 10); starLight.position.set(4.6, 2.6, 1.8); scene.add(starLight);
-
-  const noiseGLSL = `
-  vec3 mod289(vec3 x){return x-floor(x*(1.0/289.0))*289.0;}
-  vec4 mod289(vec4 x){return x-floor(x*(1.0/289.0))*289.0;}
-  vec4 permute(vec4 x){return mod289(((x*34.0)+1.0)*x);}
-  vec4 taylorInvSqrt(vec4 r){return 1.79284291400159-0.85373472095314*r;}
-  float snoise(vec3 v){
-    const vec2 C=vec2(1.0/6.0,1.0/3.0); const vec4 D=vec4(0.0,0.5,1.0,2.0);
-    vec3 i=floor(v+dot(v,C.yyy)); vec3 x0=v-i+dot(i,C.xxx);
-    vec3 g=step(x0.yzx,x0.xyz); vec3 l=1.0-g;
-    vec3 i1=min(g.xyz,l.zxy); vec3 i2=max(g.xyz,l.zxy);
-    vec3 x1=x0-i1+C.xxx; vec3 x2=x0-i2+C.yyy; vec3 x3=x0-D.yyy;
-    i=mod289(i);
-    vec4 p=permute(permute(permute(i.z+vec4(0.0,i1.z,i2.z,1.0))+i.y+vec4(0.0,i1.y,i2.y,1.0))+i.x+vec4(0.0,i1.x,i2.x,1.0));
-    float n_=0.142857142857; vec3 ns=n_*D.wyz-D.xzx;
-    vec4 j=p-49.0*floor(p*ns.z*ns.z);
-    vec4 x_=floor(j*ns.z); vec4 y_=floor(j-7.0*x_);
-    vec4 x=x_*ns.x+ns.yyyy; vec4 y=y_*ns.x+ns.yyyy;
-    vec4 h=1.0-abs(x)-abs(y);
-    vec4 b0=vec4(x.xy,y.xy); vec4 b1=vec4(x.zw,y.zw);
-    vec4 s0=floor(b0)*2.0+1.0; vec4 s1=floor(b1)*2.0+1.0;
-    vec4 sh=-step(h,vec4(0.0));
-    vec4 a0=b0.xzyw+s0.xzyw*sh.xxyy; vec4 a1=b1.xzyw+s1.xzyw*sh.zzww;
-    vec3 p0=vec3(a0.xy,h.x); vec3 p1=vec3(a0.zw,h.y); vec3 p2=vec3(a1.xy,h.z); vec3 p3=vec3(a1.zw,h.w);
-    vec4 norm=taylorInvSqrt(vec4(dot(p0,p0),dot(p1,p1),dot(p2,p2),dot(p3,p3)));
-    p0*=norm.x;p1*=norm.y;p2*=norm.z;p3*=norm.w;
-    vec4 m=max(0.6-vec4(dot(x0,x0),dot(x1,x1),dot(x2,x2),dot(x3,x3)),0.0);
-    m=m*m; return 42.0*dot(m*m,vec4(dot(p0,x0),dot(p1,x1),dot(p2,x2),dot(p3,x3)));
-  }`;
-
-  const uTime = { value: 0 };
-
-  function chromeWave(w,h,seg,amp,freq,speed,rough,color){
-    const geo = new THREE.PlaneGeometry(w,h,seg,Math.round(seg*0.55));
-    const mat = new THREE.MeshStandardMaterial({ color:color, metalness:1.0, roughness:rough, envMapIntensity:2.7 });
-    const F=(n)=>n.toFixed(5);
-    mat.onBeforeCompile = (sh)=>{
-      sh.uniforms.uTime = uTime;
-      sh.vertexShader = `uniform float uTime; varying vec3 vObjPos; ${noiseGLSL}\n` + sh.vertexShader;
-      const d = `float d0 = snoise(vec3(position.x*${F(freq)}, position.y*${F(freq*1.35)}, uTime*${F(speed)}))*${F(amp)}
-                 + snoise(vec3(position.x*${F(freq*2.5)}, position.y*${F(freq*2.9)}, uTime*${F(speed*1.5)}))*${F(amp*0.24)};`;
-      sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>',
-        `${d}\nvec3 transformed = position + vec3(0.0, 0.0, d0);\nvObjPos = position;`);
-      sh.vertexShader = sh.vertexShader.replace('#include <beginnormal_vertex>',
-        `float e=0.2;
-         ${d.replace(/d0/g,'dc')}
-         float dxx = snoise(vec3((position.x+e)*${F(freq)}, position.y*${F(freq*1.35)}, uTime*${F(speed)}))*${F(amp)}
-                   + snoise(vec3((position.x+e)*${F(freq*2.5)}, position.y*${F(freq*2.9)}, uTime*${F(speed*1.5)}))*${F(amp*0.24)};
-         float dyy = snoise(vec3(position.x*${F(freq)}, (position.y+e)*${F(freq*1.35)}, uTime*${F(speed)}))*${F(amp)}
-                   + snoise(vec3(position.x*${F(freq*2.5)}, (position.y+e)*${F(freq*2.9)}, uTime*${F(speed*1.5)}))*${F(amp*0.24)};
-         vec3 objectNormal = normalize(vec3(-(dxx-dc)/e, -(dyy-dc)/e, 1.0));`);
-
-      /* ── UNMIXED PAINT — marbled silver + copper ──
-         Domain-warped noise splits the surface into clean swirled regions of
-         silver chrome and copper-orange, like two metallic paints poured
-         together but not stirred. Slow drift keeps the swirls alive. */
-      sh.fragmentShader = `uniform float uTime; varying vec3 vObjPos; ${noiseGLSL}\n` + sh.fragmentShader;
-      sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>',
-        `#include <color_fragment>
-        {
-          vec3 q = vObjPos * 0.10;
-          float w1 = snoise(vec3(q.x*1.6, q.y*1.6, uTime*0.05));
-          float w2 = snoise(vec3(q.x*0.7 + 5.2, q.y*0.7 - 3.1, uTime*0.035));
-          float m  = snoise(vec3(q.x + w1*0.85 + w2*0.4, q.y + w1*0.85 - w2*0.4, uTime*0.03));
-          /* crisp-but-soft border between the two paints — narrower band = more black */
-          float band = smoothstep(0.08, 0.58, m);
-          vec3 goldPaint  = vec3(0.831, 0.710, 0.486);
-          vec3 solidBlack = vec3(0.03, 0.03, 0.035);
-          /* base liquid is solid black; gold paint pours through untouched */
-          diffuseColor.rgb = mix(solidBlack, goldPaint, band);
-        }`);
-      sh.fragmentShader = sh.fragmentShader.replace('#include <roughnessmap_fragment>',
-        `#include <roughnessmap_fragment>
-        {
-          vec3 q2 = vObjPos * 0.10;
-          float w1r = snoise(vec3(q2.x*1.6, q2.y*1.6, uTime*0.05));
-          float w2r = snoise(vec3(q2.x*0.7 + 5.2, q2.y*0.7 - 3.1, uTime*0.035));
-          float mr  = snoise(vec3(q2.x + w1r*0.85 + w2r*0.4, q2.y + w1r*0.85 - w2r*0.4, uTime*0.03));
-          float bandR = smoothstep(0.08, 0.58, mr);
-          /* both the black base and the gold paint stay glossy/metallic */
-          roughnessFactor = mix(0.10, 0.16, bandR);
-        }`);
-      sh.fragmentShader = sh.fragmentShader.replace('#include <metalnessmap_fragment>',
-        `#include <metalnessmap_fragment>
-        {
-          vec3 q3 = vObjPos * 0.10;
-          float w1m = snoise(vec3(q3.x*1.6, q3.y*1.6, uTime*0.05));
-          float w2m = snoise(vec3(q3.x*0.7 + 5.2, q3.y*0.7 - 3.1, uTime*0.035));
-          float mm  = snoise(vec3(q3.x + w1m*0.85 + w2m*0.4, q3.y + w1m*0.85 - w2m*0.4, uTime*0.03));
-          float bandM = smoothstep(0.08, 0.58, mm);
-          /* both the black base and the gold paint stay fully metallic */
-          metalnessFactor = mix(1.0, 1.0, bandM);
-        }`);
-    };
-    return new THREE.Mesh(geo, mat);
-  }
-
-  // Liquid black chrome ocean — REMOVED. The page background is now the light
-  // animated backdrop (#silk-bg-photo, pure CSS) rendered behind this canvas.
-  // The master key below is the only 3D object in the scene.
-
-  /* wave2 removed — it rendered as a floating grey slab mid-screen on desktop */
-
-  // On mobile the key sit exactly on the camera's optical axis (x=0) so a
-  // lookAt-locked camera puts them dead-center on screen no matter the device's
-  // aspect ratio; desktop keeps its original off-to-the-right composition.
-  // Ring/orb sit dead-center on the camera's optical axis on every screen size —
-  // a lookAt-locked target here keeps them centered regardless of aspect ratio.
-  const ringBaseX = 0;
-  const ringBaseY = 0.4;
-  // Narrow phone screens narrow the camera's horizontal FOV (vertical FOV is
-  // fixed), which visually blows the key up far bigger than on desktop —
-  // one scale factor keeps the mesh, its glow, and its hold-hitbox in sync.
-  const keyScale = isMobile ? 0.6 : 1;
-
-  /* ═══════ THE MASTER KEY ═══════
-     A realistic antique brass master key built from primitives:
-     ornate open bow (handle) → turned collar → long round shaft with a
-     decorative band → stepped ward bit (the teeth) near a rounded tip.
-     Real key metals: satin brass for the body, a slightly darker, more
-     worn brass for the bit — keys are never mirror-polished, so the
-     roughness sits well above the old ring's showroom chrome. */
-  const seg = lowEnd ? 32 : 64;
-
-  // Satin brass — the classic yellow-gold of a real key
-  // (all three are transparent-capable so the whole key can fade away
-  //  once you've scrolled past its section)
-  const brassMat = new THREE.MeshStandardMaterial({
-    color: 0xC9A24B, metalness: 1.0, roughness: 0.32, envMapIntensity: 1.9, transparent: true
-  });
-  // Worn, handled brass — collar + bit, darker where fingers and locks live
-  const brassWorn = new THREE.MeshStandardMaterial({
-    color: 0x93712F, metalness: 1.0, roughness: 0.42, envMapIntensity: 1.6, transparent: true
-  });
-  // Bright turned edges — the freshly-cut highlights on bands and bow
-  const brassBright = new THREE.MeshStandardMaterial({
-    color: 0xE2C06A, metalness: 1.0, roughness: 0.22, envMapIntensity: 2.2, transparent: true
-  });
-  const keyMats = [brassMat, brassWorn, brassBright];
-
-  const keyGroup = new THREE.Group();
-  function part(geo, mat, x, y, z, rx, ry, rz){
-    const m = new THREE.Mesh(geo, mat);
-    m.position.set(x, y, z);
-    if (rx || ry || rz) m.rotation.set(rx || 0, ry || 0, rz || 0);
-    keyGroup.add(m);
-    return m;
-  }
-
-  // — BOW (handle): large open ring with an inner ring + four spokes, the
-  //   ornate silhouette that instantly reads "master key"
-  part(new THREE.TorusGeometry(0.62, 0.15, 24, seg), brassMat, 0, 1.62, 0);
-  part(new THREE.TorusGeometry(0.26, 0.075, 18, seg), brassBright, 0, 1.62, 0);
-  for (let i = 0; i < 4; i++) {
-    const a = Math.PI * 0.25 + i * Math.PI * 0.5;
-    part(
-      new THREE.CylinderGeometry(0.05, 0.05, 0.42, 12),
-      brassMat,
-      Math.cos(a) * 0.42, 1.62 + Math.sin(a) * 0.42, 0,
-      0, 0, a + Math.PI * 0.5
-    );
-  }
-  // small finial bead at the very top of the bow
-  part(new THREE.SphereGeometry(0.09, 20, 20), brassBright, 0, 2.33, 0);
-
-  // — COLLAR: turned taper joining bow to shaft, with a bright band
-  part(new THREE.CylinderGeometry(0.17, 0.115, 0.3, seg), brassWorn, 0, 0.92, 0);
-  part(new THREE.TorusGeometry(0.15, 0.035, 14, seg), brassBright, 0, 0.8, 0, Math.PI/2, 0, 0);
-
-  // — SHAFT: long round stem, the body of the key
-  part(new THREE.CylinderGeometry(0.095, 0.095, 2.7, seg), brassMat, 0, -0.55, 0);
-  // decorative turned band mid-shaft
-  part(new THREE.TorusGeometry(0.12, 0.03, 14, seg), brassBright, 0, 0.18, 0, Math.PI/2, 0, 0);
-  // second band just above the bit
-  part(new THREE.TorusGeometry(0.115, 0.028, 14, seg), brassWorn, 0, -1.28, 0, Math.PI/2, 0, 0);
-
-  // — BIT (the teeth): stepped ward flag on one side near the tip,
-  //   castellated like a real skeleton master key
-  part(new THREE.BoxGeometry(0.34, 0.2, 0.085), brassWorn, 0.24, -1.46, 0);   // top rail
-  part(new THREE.BoxGeometry(0.12, 0.34, 0.085), brassWorn, 0.13, -1.66, 0);  // long tooth
-  part(new THREE.BoxGeometry(0.11, 0.24, 0.085), brassWorn, 0.35, -1.61, 0);  // short tooth
-  part(new THREE.BoxGeometry(0.08, 0.14, 0.085), brassWorn, 0.24, -1.56, 0);  // notch step
-
-  // — TIP: rounded end just past the bit
-  part(new THREE.SphereGeometry(0.095, 20, 20), brassMat, 0, -1.92, 0);
-
-  // Rest pose: COMPLETELY SIDEWAYS — tip (teeth) to the LEFT, bow (the circle
-  // you hold) to the RIGHT. The key is modelled along +Y (bow up), so a -90°
-  // roll lays it flat with the bow pointing right.
-  keyGroup.rotation.set(0, 0, -Math.PI / 2);
-  keyGroup.position.set(ringBaseX, ringBaseY, 0.2);
-  keyGroup.scale.setScalar(keyScale);
-  scene.add(keyGroup);
-
-  // Copper glow halo — soft additive light bloom behind the ring to bring it out
-  function makeGlowTexture(){
-    const c = document.createElement('canvas'); c.width = c.height = 128;
-    const x = c.getContext('2d');
-    const gr = x.createRadialGradient(64,64,0, 64,64,64);
-    gr.addColorStop(0,   'rgba(255,225,150,0.85)');
-    gr.addColorStop(0.35,'rgba(224,178,76,0.38)');
-    gr.addColorStop(1,   'rgba(224,178,76,0)');
-    x.fillStyle = gr; x.fillRect(0,0,128,128);
-    return new THREE.CanvasTexture(c);
-  }
-  const keyGlow = new THREE.Sprite(new THREE.SpriteMaterial({
-    map: makeGlowTexture(), color:0xE0B24C, transparent:true, opacity:0.5,
-    blending:THREE.AdditiveBlending, depthWrite:false
-  }));
-  keyGlow.scale.set(8 * keyScale, 8 * keyScale, 1);
-  keyGlow.position.copy(keyGroup.position);
-  keyGlow.position.z -= 0.7;
-  scene.add(keyGlow);
-
-  // Gold dust — a small halo that lives around the key and scrolls with it
-  const dg = new THREE.BufferGeometry();
-  const dn = lowEnd ? 90 : 200, dp = new Float32Array(dn*3);
-  for (let i=0;i<dn*3;i+=3){ dp[i]=(Math.random()-0.5)*7; dp[i+1]=(Math.random()-0.5)*4; dp[i+2]=(Math.random()-0.5)*4-1; }
-  dg.setAttribute('position', new THREE.BufferAttribute(dp,3));
-  const dust = new THREE.Points(dg, new THREE.PointsMaterial({ color:0xC9A96E, size:0.022, transparent:true, opacity:0.5 }));
-  scene.add(dust);
-
-  let t=0;
-
-  // ── HOLD → STORM → GONE ──
-  // holdProgress (0..1) is fed live from the on-key hold zone — the key turns
-  // in its invisible lock exactly with the visitor's thumb. When the hold
-  // completes, the storm plays: the key spins up and blasts straight through
-  // the camera ("a whole new era"), then it's gone until the next page load.
-  let holdProgress = 0;            // scrubbed by the hold-the-key zone
-  let stormActive = false, stormProgress = 0, keyGone = false;
-  let frame = 0;
-  const holdUI = document.getElementById('keyHoldBtn');
-  const projV = new THREE.Vector3();
-
-  window._keyHold = (p) => { holdProgress = Math.max(0, Math.min(1, p)); };
-  window._keyStorm = () => { if (!keyGone) stormActive = true; };
-  window._keySetZone = () => {}; // legacy API — key now tracks #keyAnchor directly
-  window._pendingKeyZone = null;
-
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  let visible = true;
-  document.addEventListener('visibilitychange',()=>{ visible = !document.hidden; });
-
-  // ── The key's layout anchor ──
-  // The key is glued to #keyAnchor (a real block in the document flow), so it
-  // scrolls in perfect lock-step with the surrounding text — exactly like a
-  // photo placed on the page. No drifting, no floating, no chasing the scroll.
-  const keyAnchor = document.getElementById('keyAnchor');
-  // Camera never moves, so the key's rest-depth NDC z is a constant.
-  projV.set(0, 0, 0.2).project(camera);
-  const restNdcZ = projV.z;
-  // Last tracked page position — frozen during the storm so the blast-off
-  // launches from wherever the key was sitting.
-  let baseX = ringBaseX, baseY = ringBaseY;
-
-  function loop(){
-    requestAnimationFrame(loop);
-    if (!visible) return;
-    frame++;
-    t += reduce ? 0.0012 : 0.008;
-
-    // ── Glue the key to its layout slot ──
-    // #keyAnchor is a real block in the document flow. Tracking its rect every
-    // frame pins the key to that exact spot on the page, so it scrolls 1:1
-    // with the surrounding text — like a photo. Nothing else moves it.
-    let anchorOn = false;
-    if (keyAnchor && !stormActive && !keyGone) {
-      const ar = keyAnchor.getBoundingClientRect();
-      anchorOn = ar.width > 0 && ar.bottom > -200 && ar.top < window.innerHeight + 200;
-      if (anchorOn) {
-        const ndcX = ((ar.left + ar.width / 2) / window.innerWidth) * 2 - 1;
-        const ndcY = -(((ar.top + ar.height / 2) / window.innerHeight) * 2 - 1);
-        projV.set(ndcX, ndcY, restNdcZ).unproject(camera);
-        baseX = projV.x; baseY = projV.y;
-      }
-    } else if (stormActive) {
-      anchorOn = true;   // the storm plays out from wherever the key was sitting
-    }
-
-    // ── Storm: "a whole new era" — plays once the hold completes ──
-    // The key whips into a fast spin, rears back a breath, then blasts
-    // straight through the camera and out of the scene for good.
-    if (stormActive) {
-      stormProgress = Math.min(1, stormProgress + (reduce ? 0.2 : 0.016));
-      if (stormProgress >= 1) { stormActive = false; keyGone = true; }
-    }
-    const sp = stormProgress;
-    const stormEase = sp*sp*sp;                       // accelerating launch
-    const stormRecoil = Math.sin(Math.min(1, sp*4) * Math.PI) * -0.9;  // brief pull-back first
-    const stormZ = stormRecoil + stormEase * 11;      // ...then straight through the lens
-    const stormSpin = sp*sp * 26;                     // furious spin as it goes
-
-    // hold turn: the key rotates a quarter-turn in its invisible lock,
-    // scrubbed 1:1 by how long the visitor has been holding it
-    const holdEase = holdProgress*holdProgress*(3 - 2*holdProgress);
-
-    keyGroup.position.set(baseX, baseY + stormEase * 0.6, 0.2 + stormZ);
-
-    // ── Dead still at rest — a photo on the page ──
-    // No idle sway, no bobbing. The key only comes alive under the visitor's
-    // thumb: it rolls in its lock exactly with the hold, and the storm reuses
-    // the same axis to drill straight through the screen.
-    keyGroup.rotation.x = holdEase * (Math.PI * 0.5) + stormSpin;
-    keyGroup.rotation.y = 0;
-    keyGroup.rotation.z = -Math.PI / 2;
-
-    // solid while its slot is on screen; the storm's last 15% fades it out
-    const keyOpacity = (anchorOn && !keyGone ? 1 : 0) * (1 - Math.max(0, (sp - 0.85) / 0.15));
-    for (let i = 0; i < keyMats.length; i++) keyMats[i].opacity = keyOpacity;
-    keyGroup.visible = keyOpacity > 0.02;
-
-    // ── Invisible hold hitbox rides the WHOLE key ──
-    // Project the key's centre to screen pixels and size a rectangle to the
-    // key's full on-screen footprint (tip to bow), so pressing ANYWHERE on
-    // the key starts the hold. Nothing is drawn — the key itself is the UI.
-    if (holdUI) {
-      const arrived = !stormActive && !keyGone;
-      const wantUI = !!window._keyHoldUIWanted && arrived && keyOpacity > 0.5;
-      if (wantUI) {
-        keyGroup.updateMatrixWorld();
-        projV.set(0, 0.2, 0);                    // midpoint of the key's length
-        keyGroup.localToWorld(projV);
-        const keyWorldZ = projV.z;
-        projV.project(camera);
-        const sx = ( projV.x * 0.5 + 0.5) * window.innerWidth;
-        const sy = (-projV.y * 0.5 + 0.5) * window.innerHeight;
-        // key spans ~4.3 units long × ~1.8 tall at scale 1 — convert to pixels
-        // at its depth, honoring the same keyScale the mesh itself uses
-        const dist = Math.max(0.5, camera.position.z - keyWorldZ);
-        const pxPerUnit = window.innerHeight / (2 * dist * 0.4663);   // fov 50°
-        const wPx = Math.max(140, Math.min(620, 4.3 * keyScale * pxPerUnit));
-        const hPx = Math.max(80,  Math.min(340, 1.8 * keyScale * pxPerUnit));
-        if (Math.abs(wPx - (loop._holdW || 0)) > 3 || Math.abs(hPx - (loop._holdH || 0)) > 3) {
-          holdUI.style.width = wPx + 'px';
-          holdUI.style.height = hPx + 'px';
-          loop._holdW = wPx; loop._holdH = hPx;
-        }
-        holdUI.style.transform = 'translate(' + (sx - wPx/2) + 'px,' + (sy - hPx/2) + 'px)';
-      }
-      if (wantUI !== loop._holdShown) {
-        holdUI.classList.toggle('show', wantUI);
-        loop._holdShown = wantUI;
-      }
-    }
-
-    keyGlow.position.copy(keyGroup.position);
-    keyGlow.position.z -= 0.7;
-    keyGlow.visible = keyGroup.visible;
-    keyGlow.material.opacity = (holdEase*0.75 + sp*0.4) * keyOpacity;
-
-    // gold dust hangs gently around the key and scrolls with it — a whisper
-    // of atmosphere, not a floating overlay over the rest of the page
-    dust.position.x = baseX; dust.position.y = baseY;
-    dust.rotation.y = t*0.014;
-    dust.material.opacity = 0.35 * keyOpacity;
-    dust.visible = keyOpacity > 0.02;
-
-    // Camera never moves — the key's on-page position comes entirely from
-    // its layout slot, so it can never drift, chase the scroll, or parallax.
-
-    if (loop._lastCo !== 1) { canvas.style.opacity = 1; loop._lastCo = 1; }
-
-    // Big perf wins:
-    // 1) render nothing while the key's slot is off-screen — after one final
-    //    clearing frame so the last drawn key never lingers on the canvas
-    const wantRender = keyOpacity > 0.01 || stormActive;
-    if (!wantRender) {
-      if (loop._dirty) { renderer.render(scene, camera); loop._dirty = false; }
-      return;
-    }
-    loop._dirty = true;
-    // 2) low-end devices render at half rate (30fps) — state still updates at
-    //    full rate above, so nothing slows down, it just draws less often
-    if (lowEnd && (frame & 1)) return;
-
-    renderer.render(scene, camera);
-  }
-  loop();
-
-  window.addEventListener('resize',()=>{
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  });
-})();
-</script>
 </body>
 </html>
