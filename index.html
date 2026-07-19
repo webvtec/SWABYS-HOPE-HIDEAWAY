@@ -507,7 +507,22 @@
     .cursor-ring.is-hover { width: 52px; height: 52px; border-color: rgba(184,115,51,0.9); background: rgba(184,115,51,0.08); }
     @media (pointer: coarse) { .cursor-dot, .cursor-ring { display: none; } }
 
-    /* ═══ image unveil ═══ */
+    /* ── No fade-in for feature cards or events photos ── */
+    #featuresGrid .img-unveil,
+    #featuresGrid .img-unveil.unveiled,
+    #eventsGrid .img-unveil,
+    #eventsGrid .img-unveil.unveiled {
+      clip-path: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+    #featuresGrid > *,
+    #featuresGrid > *.card-in {
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
     .img-unveil { clip-path: inset(10% 5% 10% 5% round 8px); opacity: 0; transform: scale(1.04); transition: clip-path 0.7s cubic-bezier(0.22,1,0.36,1), opacity 0.5s ease, transform 0.8s cubic-bezier(0.22,1,0.36,1); }
     .img-unveil.unveiled { clip-path: inset(0 0 0 0 round 0px); opacity: 1; transform: scale(1); }
     @media (prefers-reduced-motion: reduce) { .img-unveil { clip-path:none; opacity:1; transform:none; } }
@@ -2437,10 +2452,10 @@
     <!-- FEATURES -->
     <section class="features">
       <div class="container">
-        <div class="features-header reveal">
+        <div class="features-header">
           <h2 class="section-title">Gallery Highlights</h2>
         </div>
-        <div class="features-grid reveal-stagger" id="featuresGrid">
+        <div class="features-grid" id="featuresGrid">
           <!-- Loaded dynamically from Firebase -->
           <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);font-style:italic;">Loading features...</div>
         </div>
@@ -2520,10 +2535,10 @@
 
     <section class="events-showcase">
       <div class="container">
-        <div class="events-showcase-header reveal">
+        <div class="events-showcase-header">
           <h2 class="section-title">Weddings &amp; Events</h2>
         </div>
-        <div class="events-grid reveal-stagger" id="eventsGrid">
+        <div class="events-grid" id="eventsGrid">
           <!-- Loaded dynamically from Firebase -->
           <div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);font-style:italic;">Loading events...</div>
         </div>
