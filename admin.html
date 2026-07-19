@@ -1308,24 +1308,27 @@ async function loadFeatures() {
   const el = document.getElementById('featuresList');
   if (items.length === 0) { el.innerHTML = '<div class="empty-state">No features yet</div>'; return; }
   el.innerHTML = items.map(f => {
-    // Support multiple images: images[] array OR legacy single imageUrl
-    const imgs = Array.isArray(f.images) && f.images.length > 0 ? f.images : (f.imageUrl ? [f.imageUrl] : []);
+    const previewImgs = Array.isArray(f.mobileImages) && f.mobileImages.length ? f.mobileImages
+      : (Array.isArray(f.images) && f.images.length ? f.images : (f.imageUrl ? [f.imageUrl] : []));
+    const mobCount  = Array.isArray(f.mobileImages)  ? f.mobileImages.length  : 0;
+    const deskCount = Array.isArray(f.desktopImages) ? f.desktopImages.length : 0;
     let imgHtml;
-    if (imgs.length === 0) {
+    if (previewImgs.length === 0) {
       imgHtml = '<div class="no-img">No image</div>';
-    } else if (imgs.length === 1) {
-      imgHtml = `<img src="${imgs[0]}" />`;
+    } else if (previewImgs.length === 1) {
+      imgHtml = `<img src="${previewImgs[0]}" />`;
     } else {
-      const dots = imgs.map((_,i) => `<button class="admin-slide-dot${i===0?' active':''}" onclick="adminSlideGo('${f.id}',${i})"></button>`).join('');
-      const slides = imgs.map((u,i) => `<img src="${u}" class="${i===0?'active':''}" />`).join('');
+      const dots = previewImgs.map((_,i) => `<button class="admin-slide-dot${i===0?' active':''}" onclick="adminSlideGo('${f.id}',${i})"></button>`).join('');
+      const slides = previewImgs.map((u,i) => `<img src="${u}" class="${i===0?'active':''}" />`).join('');
       imgHtml = `<div class="admin-slide-preview" id="aslide-${f.id}">${slides}<div class="admin-slide-dots">${dots}</div></div>`;
     }
+    const slotInfo = [mobCount ? `📱 ${mobCount}` : '', deskCount ? `🖥️ ${deskCount}` : ''].filter(Boolean).join('  ');
     return `
     <div class="item-card">
       <div class="item-card-img">${imgHtml}</div>
       <div class="item-card-body">
         <div class="item-card-title">${f.title}</div>
-        <div class="item-card-meta">${f.description || ''}${imgs.length > 1 ? ` <span style="color:var(--copper-shine);margin-left:4px;">· ${imgs.length} photos</span>` : ''}</div>
+        <div class="item-card-meta">${f.description || ''}${slotInfo ? ` <span style="color:var(--copper-shine);margin-left:4px;">${slotInfo}</span>` : ''}</div>
       </div>
       <div class="item-card-actions">
         <button class="btn btn-outline btn-sm" onclick="openFeatureModal('${f.id}')">Edit</button>
@@ -1333,10 +1336,10 @@ async function loadFeatures() {
       </div>
     </div>`;
   }).join('');
-  // Start auto-slideshows for multi-image cards
   items.forEach(f => {
-    const imgs = Array.isArray(f.images) && f.images.length > 0 ? f.images : (f.imageUrl ? [f.imageUrl] : []);
-    if (imgs.length > 1) startAdminSlide(f.id, imgs.length);
+    const previewImgs = Array.isArray(f.mobileImages) && f.mobileImages.length ? f.mobileImages
+      : (Array.isArray(f.images) && f.images.length ? f.images : []);
+    if (previewImgs.length > 1) startAdminSlide(f.id, previewImgs.length);
   });
 }
 
@@ -1356,32 +1359,51 @@ function adminSlideGo(featureId, idx) {
   wrap.querySelectorAll('.admin-slide-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
 }
 
-// Multi-image state for feature modal
-let _featureImages = []; // [{url, file?, name}] — url=existing, file=new upload
+// Multi-image state for feature modal — split by slot
+let _featureMobileImgs = []; // max 2
+let _featureDesktopImgs = []; // max 2
 
 function openFeatureModal(editId) {
-  _featureImages = [];
+  _featureMobileImgs = [];
+  _featureDesktopImgs = [];
   openModal(editId ? 'Edit Feature' : 'Add Feature');
   document.getElementById('modalBody').innerHTML = `
     <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="mTitle" placeholder="e.g. Boutique Rooms" /></div>
     <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="mDesc" placeholder="Short description"></textarea></div>
     <div class="form-group"><label class="form-label">Display Order</label><input type="number" class="form-input" id="mOrder" value="0" min="0" /></div>
-    <div class="form-group">
-      <label class="form-label">Photos <span style="font-weight:400;color:var(--text-dim)">(add as many as you like — they'll slideshow on the homepage)</span></label>
-      <div class="img-upload-zone" onclick="this.querySelector('input').click()" style="margin-bottom:0.5rem;">
-        <input type="file" accept="image/*" multiple id="mImgPicker" onchange="featureImgAdd(this)" />
-        <div class="label"><strong>Click to add photos</strong> — select one or multiple at once</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem;">
+      <div>
+        <label class="form-label" style="margin-bottom:0.35rem;">📱 Mobile Photos <span style="font-weight:400;color:var(--text-dim)">(max 2 — optional)</span></label>
+        <div class="img-upload-zone" id="mobileUploadZone" onclick="triggerFeatureUpload('mobile')" style="min-height:80px;cursor:pointer;">
+          <input type="file" accept="image/*" id="mMobileImgPicker" style="display:none" onchange="featureSlotAdd(this,'mobile')" />
+          <div class="label" id="mobileUploadLabel"><strong>Click to add</strong><br><span style="font-size:0.72rem;">up to 2 photos</span></div>
+        </div>
+        <div class="multi-img-list" id="featureMobileList" style="margin-top:0.5rem;"></div>
       </div>
-      <div class="multi-img-list" id="featureImgList"></div>
-    </div>`;
+      <div>
+        <label class="form-label" style="margin-bottom:0.35rem;">🖥️ Desktop Photos <span style="font-weight:400;color:var(--text-dim)">(max 2 — optional)</span></label>
+        <div class="img-upload-zone" id="desktopUploadZone" onclick="triggerFeatureUpload('desktop')" style="min-height:80px;cursor:pointer;">
+          <input type="file" accept="image/*" id="mDesktopImgPicker" style="display:none" onchange="featureSlotAdd(this,'desktop')" />
+          <div class="label" id="desktopUploadLabel"><strong>Click to add</strong><br><span style="font-size:0.72rem;">up to 2 photos</span></div>
+        </div>
+        <div class="multi-img-list" id="featureDesktopList" style="margin-top:0.5rem;"></div>
+      </div>
+    </div>
+    <p style="font-size:0.72rem;color:var(--text-dim);margin-top:0.75rem;">If only mobile photos are uploaded, they'll also show on desktop. If only desktop photos are uploaded, they'll also show on mobile.</p>`;
   document.getElementById('modalFooter').innerHTML = `
     <button class="btn btn-outline" onclick="closeModal()">Cancel</button>
     <button class="btn btn-copper" onclick="saveFeature('${editId||''}')">Save</button>`;
   if (editId) {
     loadEditData('features', editId, ['mTitle:title','mDesc:description','mOrder:order']);
-    // Also load existing images
     loadFeatureImages(editId);
   }
+}
+
+function triggerFeatureUpload(slot) {
+  const arr = slot === 'mobile' ? _featureMobileImgs : _featureDesktopImgs;
+  if (arr.length >= 2) { showToast('Max 2 photos per slot'); return; }
+  document.getElementById(slot === 'mobile' ? 'mMobileImgPicker' : 'mDesktopImgPicker').click();
 }
 
 async function loadFeatureImages(editId) {
@@ -1390,68 +1412,86 @@ async function loadFeatureImages(editId) {
   const snap = await getDoc(doc(db, 'features', editId));
   if (!snap.exists()) return;
   const data = snap.data();
-  const imgs = Array.isArray(data.images) && data.images.length > 0 ? data.images : (data.imageUrl ? [data.imageUrl] : []);
-  imgs.forEach(url => {
-    _featureImages.push({ url, name: url.split('/').pop().split('?')[0].slice(0,28) });
-  });
-  renderFeatureImgList();
+  // Load new split fields, fall back to legacy images[] for old records
+  const mob = Array.isArray(data.mobileImages) && data.mobileImages.length ? data.mobileImages
+    : (Array.isArray(data.images) && data.images.length ? data.images.slice(0, 2) : (data.imageUrl ? [data.imageUrl] : []));
+  const desk = Array.isArray(data.desktopImages) && data.desktopImages.length ? data.desktopImages
+    : [];
+  mob.forEach(url => _featureMobileImgs.push({ url, name: url.split('/').pop().split('?')[0].slice(0,28) }));
+  desk.forEach(url => _featureDesktopImgs.push({ url, name: url.split('/').pop().split('?')[0].slice(0,28) }));
+  renderFeatureSlotList('mobile');
+  renderFeatureSlotList('desktop');
 }
 
-function featureImgAdd(input) {
-  Array.from(input.files).forEach(file => {
+function featureSlotAdd(input, slot) {
+  const arr = slot === 'mobile' ? _featureMobileImgs : _featureDesktopImgs;
+  const remaining = 2 - arr.length;
+  Array.from(input.files).slice(0, remaining).forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
-      _featureImages.push({ url: e.target.result, file, name: file.name });
-      renderFeatureImgList();
+      arr.push({ url: e.target.result, file, name: file.name });
+      renderFeatureSlotList(slot);
     };
     reader.readAsDataURL(file);
   });
   input.value = '';
 }
 
-function featureImgRemove(idx) {
-  _featureImages.splice(idx, 1);
-  renderFeatureImgList();
+function featureSlotRemove(slot, idx) {
+  const arr = slot === 'mobile' ? _featureMobileImgs : _featureDesktopImgs;
+  arr.splice(idx, 1);
+  renderFeatureSlotList(slot);
 }
 
-function renderFeatureImgList() {
-  const list = document.getElementById('featureImgList');
-  if (!list) return;
-  if (_featureImages.length === 0) { list.innerHTML = ''; return; }
-  list.innerHTML = _featureImages.map((img, i) => `
+function renderFeatureSlotList(slot) {
+  const arr = slot === 'mobile' ? _featureMobileImgs : _featureDesktopImgs;
+  const listEl = document.getElementById(slot === 'mobile' ? 'featureMobileList' : 'featureDesktopList');
+  const zoneEl = document.getElementById(slot === 'mobile' ? 'mobileUploadZone' : 'desktopUploadZone');
+  if (!listEl) return;
+  // Hide upload zone when at max
+  if (zoneEl) zoneEl.style.display = arr.length >= 2 ? 'none' : '';
+  if (arr.length === 0) { listEl.innerHTML = ''; return; }
+  listEl.innerHTML = arr.map((img, i) => `
     <div class="multi-img-item">
       <img class="multi-img-thumb" src="${img.url}" />
-      <span class="multi-img-name">${img.file ? img.file.name : img.name}</span>
-      <button class="multi-img-remove" onclick="featureImgRemove(${i})">&#215;</button>
+      <span class="multi-img-name">${img.name}</span>
+      <button class="multi-img-remove" onclick="featureSlotRemove('${slot}',${i})">&#215;</button>
     </div>`).join('');
 }
 
 async function saveFeature(editId) {
   const data = { title: gv('mTitle'), description: gv('mDesc'), order: parseInt(gv('mOrder')) || 0 };
   if (!data.title) { alert('Title is required.'); return; }
-
-  // Upload any new files
   const btn = document.querySelector('#modalFooter .btn-copper');
   btn.disabled = true; btn.textContent = 'Saving…';
   try {
     const { storage, ref, uploadBytesResumable, getDownloadURL, db, collection, addDoc, doc, updateDoc } = window._fb;
-    const finalUrls = [];
-    for (const img of _featureImages) {
-      if (img.file) {
-        // New upload
-        const storageRef = ref(storage, `features/${Date.now()}_${img.file.name}`);
-        const url = await new Promise((resolve, reject) => {
-          const task = uploadBytesResumable(storageRef, img.file);
-          task.on('state_changed', null, reject, async () => resolve(await getDownloadURL(task.snapshot.ref)));
-        });
-        finalUrls.push(url);
-      } else {
-        finalUrls.push(img.url);
+
+    async function uploadSlot(arr) {
+      const urls = [];
+      for (const img of arr) {
+        if (img.file) {
+          const storageRef = ref(storage, `features/${Date.now()}_${img.file.name}`);
+          const url = await new Promise((resolve, reject) => {
+            const task = uploadBytesResumable(storageRef, img.file);
+            task.on('state_changed', null, reject, async () => resolve(await getDownloadURL(task.snapshot.ref)));
+          });
+          urls.push(url);
+        } else {
+          urls.push(img.url);
+        }
       }
+      return urls;
     }
-    data.images = finalUrls;
-    // Keep legacy imageUrl for backward compat
-    data.imageUrl = finalUrls[0] || '';
+
+    const mobileUrls  = await uploadSlot(_featureMobileImgs);
+    const desktopUrls = await uploadSlot(_featureDesktopImgs);
+
+    data.mobileImages  = mobileUrls;
+    data.desktopImages = desktopUrls;
+    // Legacy compat: images[] = whichever slot has photos (mobile preferred)
+    data.images   = mobileUrls.length  ? mobileUrls  : desktopUrls;
+    data.imageUrl = data.images[0] || '';
 
     if (editId) { await updateDoc(doc(db, 'features', editId), data); }
     else { await addDoc(collection(db, 'features'), data); }

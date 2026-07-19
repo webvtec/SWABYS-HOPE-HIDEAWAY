@@ -295,21 +295,21 @@
         grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:2rem;color:var(--text-muted);font-style:italic;">No features added yet. Add them from the admin dashboard.</div>';
         return;
       }
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
       grid.innerHTML = features.map((f, fi) => {
-        // Support multiple images
-        const imgs = Array.isArray(f.images) && f.images.length > 0 ? f.images : (f.imageUrl ? [f.imageUrl] : []);
+        const mobImgs  = Array.isArray(f.mobileImages)  && f.mobileImages.length  ? f.mobileImages  : null;
+        const deskImgs = Array.isArray(f.desktopImages) && f.desktopImages.length ? f.desktopImages : null;
+        const legacy   = Array.isArray(f.images) && f.images.length ? f.images : (f.imageUrl ? [f.imageUrl] : []);
+        const imgs = (isMobile ? (mobImgs || deskImgs || legacy) : (deskImgs || mobImgs || legacy)) || [];
         let imgHtml;
         if (imgs.length <= 1) {
           imgHtml = `<img src="${imgs[0] || ''}" alt="${f.title}" class="feature-slide-img active" />`;
         } else {
           imgHtml = imgs.map((u, i) => `<img src="${u}" alt="${f.title}" class="feature-slide-img${i===0?' active':''}" />`).join('');
         }
-        const hasDots = false;
-        const dots = '';
         return `
         <div class="feature-card feature-slideshow" id="fcard-${fi}" data-slide-count="${imgs.length}" ${f.linkPage ? `onclick="navigateTo('${f.linkPage}')"` : ''}>
           ${imgHtml}
-          ${dots}
           <div class="feature-card-overlay">
             <h3 class="feature-card-title">${f.title}</h3>
             <p class="feature-card-desc">${f.description}</p>
@@ -317,11 +317,13 @@
         </div>`;
       }).join('');
       grid.classList.add('in-view');
-      // Mobile: observe each new card so it fades in one by one
       if (window._bindMobileCards) window._bindMobileCards();
-      // Start slideshows
       features.forEach((f, fi) => {
-        const imgs = Array.isArray(f.images) && f.images.length > 0 ? f.images : (f.imageUrl ? [f.imageUrl] : []);
+        const isMob = window.matchMedia('(max-width: 768px)').matches;
+        const mobImgs  = Array.isArray(f.mobileImages)  && f.mobileImages.length  ? f.mobileImages  : null;
+        const deskImgs = Array.isArray(f.desktopImages) && f.desktopImages.length ? f.desktopImages : null;
+        const legacy   = Array.isArray(f.images) && f.images.length ? f.images : [];
+        const imgs = (isMob ? (mobImgs || deskImgs || legacy) : (deskImgs || mobImgs || legacy)) || [];
         if (imgs.length > 1) startFeatureSlide(fi, imgs.length);
       });
     }
@@ -2430,7 +2432,7 @@
     <section class="features">
       <div class="container">
         <div class="features-header reveal">
-          <h2 class="section-title">Your Hideaway Awaits</h2>
+          <h2 class="section-title">Gallery Highlights</h2>
         </div>
         <div class="features-grid reveal-stagger" id="featuresGrid">
           <!-- Loaded dynamically from Firebase -->
@@ -2892,6 +2894,21 @@
       if (window._bindMobileCards) window._bindMobileCards();
     }
     initReveal();
+
+    // Re-check all reveal elements on resize (fixes DevTools inspect mode switching)
+    let _resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(_resizeTimer);
+      _resizeTimer = setTimeout(() => {
+        // Disconnect and reconnect so the observer re-evaluates every element
+        revealObs.disconnect();
+        document.querySelectorAll('.reveal, .reveal-stagger').forEach(el => {
+          revealObs.observe(el);
+        });
+        if (window.ScrollTrigger) ScrollTrigger.refresh();
+        if (window._bindMobileCards) window._bindMobileCards();
+      }, 150);
+    });
 
     /* MOBILE: feature cards reveal individually (quick fade, replays on re-entry) */
     const mobileCardObs = new IntersectionObserver((entries) => {
@@ -4115,7 +4132,7 @@
   }, { threshold: 0.18 });
 
   function bindImages(root){
-    root.querySelectorAll('.feature-card img, .room-card-image img, .event-card-image img').forEach(img=>{
+    root.querySelectorAll('.feature-card img, .room-card-image img, .event-card-image img, .event-photo-item img').forEach(img=>{
       if (img.dataset.motionBound) return;
       img.dataset.motionBound = '1';
       if (!reduceMotion) {
@@ -4132,6 +4149,18 @@
     muts.forEach(m=>{ if (m.addedNodes.length) dirty = true; });
     if (dirty) { bindImages(document); requestAnimationFrame(()=>ScrollTrigger.refresh()); bindCounters(document); }
   }).observe(document.body, { childList:true, subtree:true });
+
+  // Re-observe all unveil images on resize (fixes DevTools viewport switching)
+  let _gsapResizeTimer;
+  window.addEventListener('resize', ()=>{
+    clearTimeout(_gsapResizeTimer);
+    _gsapResizeTimer = setTimeout(()=>{
+      unveilObs.disconnect();
+      document.querySelectorAll('.img-unveil').forEach(img=>{ img.dataset.motionBound=''; });
+      bindImages(document);
+      requestAnimationFrame(()=>ScrollTrigger.refresh());
+    }, 150);
+  });
 
   /* ---------- Magnetic 3D tilt on card images ---------- */
   if (window.matchMedia('(pointer: fine)').matches && !reduceMotion) {
