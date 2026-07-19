@@ -1291,6 +1291,21 @@
     /* ═══════════════════════════════════════════
        PAGE TRANSITIONS
        ═══════════════════════════════════════════ */
+    /* Story gate: content stays hidden until the door opens.
+       Applied ONLY when the 3D scene boots (body.story-gated), so the page
+       degrades gracefully if WebGL/Three.js is unavailable. */
+    body.story-gated #storyContent,
+    body.story-gated #siteFooter {
+      opacity: 0;
+      transform: translateY(46px);
+      transition: opacity 1s var(--ease-out), transform 1s var(--ease-out);
+    }
+    body.story-gated #storyContent.story-open,
+    body.story-gated #siteFooter.story-open {
+      opacity: 1;
+      transform: none;
+    }
+
     .page { display: none; }
     .page.active { display: block; animation: pageIn 0.5s var(--ease-out); }
     @keyframes pageIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
@@ -2243,9 +2258,7 @@
         </picture>
       </div>
       <div class="hero-content">
-        <div class="hero-tagline-eyebrow reveal">Spur Tree &middot; Mandeville &middot; Jamaica</div>
-        <h1 class="hero-tagline reveal" style="transition-delay:0.06s;">Use Our <em>Hideaway</em><br/>for Your Getaway</h1>
-        <p class="hero-description reveal" style="transition-delay:0.12s;">An intimate boutique hotel perched above the clouds &mdash; cool mountain air, endless hill views, and Jamaican warmth that is lived, not performed.</p>
+        <h1 class="hero-tagline reveal">Use Our <em>Hideaway</em><br/>for Your Getaway</h1>
         <div class="hero-actions reveal" style="transition-delay:0.15s;">
           <button class="btn-hero-solid" onclick="navigateTo('rooms')">
             Explore Accommodation
@@ -2261,6 +2274,11 @@
     </section>
 
 
+    <!-- STORY RUNWAY — empty scroll stage where the key/door story plays alone -->
+    <div id="storyRunway" aria-hidden="true" style="height:0;pointer-events:none;"></div>
+
+    <!-- Content revealed by the opening door -->
+    <div id="storyContent">
     <!-- SIGNATURE MARQUEE -->
     <div class="marquee-band reveal" aria-hidden="true">
       <div class="marquee-track" id="marqueeTrack">
@@ -2315,6 +2333,7 @@
       </div>
     </section>
 
+    </div><!-- /storyContent -->
   </div><!-- /page-home -->
 
 
@@ -4178,6 +4197,15 @@
   const matKnob    = new THREE.MeshStandardMaterial({ color:0xC17A3A, metalness:1, roughness:0.04, envMapIntensity:2.5 });
   const matPanel   = new THREE.MeshStandardMaterial({ color:0x17110d, metalness:0.6, roughness:0.38, envMapIntensity:1.15 });
 
+  /* ── Story gate: the scene booted, so hide the content and lay the runway.
+     The empty runway gives the key/door sequence a solo stage; the content
+     sits below it and fades in once the door opens. ── */
+  const storyContent = document.getElementById('storyContent');
+  const siteFooterEl = document.getElementById('siteFooter');
+  const storyRunway  = document.getElementById('storyRunway');
+  document.body.classList.add('story-gated');
+  if (storyRunway) storyRunway.style.height = (isMobile ? 165 : 150) + 'vh';
+
   /* ══════════ THE DOOR (the old ring, reborn) ══════════ */
   const doorGroup = new THREE.Group();
   scene.add(doorGroup);
@@ -4363,12 +4391,12 @@
       idleZ + (tzp-idleZ)*iE
     );
     /* presentation spin while loose → locked square to the door once inserted */
-    const idleSpin = Math.sin(t*0.55)*0.45;
+    const idleSpin = -Math.sin(t*0.55)*0.45;
     keyGroup.rotation.y = idleSpin*(1-iE) + (Math.PI/2 + h)*iE;
     keyGroup.rotation.z = Math.sin(t*0.7)*0.12*(1-iE);
     keyGroup.rotation.x = Math.cos(t*0.6)*0.10*(1-iE);
     /* the turn: quarter-rotation around its own shaft */
-    keyBody.rotation.x = uE * (Math.PI/2);
+    keyBody.rotation.x = uE * (-Math.PI/2);
     /* knob answers the turn with a tiny courteous twist */
     knob.rotation.z = uE * 0.35;
 
@@ -4391,6 +4419,17 @@
     const reveal = clamp01((y - heroH*0.1) / (heroH*0.28));
     canvas.style.opacity = reveal;
     if (photoBg) photoBg.style.opacity = reveal * oE;
+
+    /* Content appears as the door opens; re-hides if you scroll the door shut */
+    const doorAjar = oS > 0.28, doorShut = oS < 0.1;
+    if (storyContent) {
+      if (doorAjar) storyContent.classList.add('story-open');
+      else if (doorShut) storyContent.classList.remove('story-open');
+    }
+    if (siteFooterEl) {
+      if (doorAjar) siteFooterEl.classList.add('story-open');
+      else if (doorShut) siteFooterEl.classList.remove('story-open');
+    }
 
     if (reveal <= 0.01) return;
     renderer.render(scene, camera);
