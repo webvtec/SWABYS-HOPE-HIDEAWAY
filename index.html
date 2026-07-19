@@ -3996,24 +3996,33 @@
     }
     for (let i=0;i<3;i++) track.appendChild(buildItem());
 
-    let mqX = 0, mqSpeed = 0.8, itemW = 0, mqFrame = 0;
+    let mqX = 0, mqSpeed = 0.8, itemW = 0, mqFrame = 0, mqLast = 0;
     function measure(){ itemW = track.children[0] ? track.children[0].offsetWidth + 56 : 0; }
     measure();
     window.addEventListener('resize', measure);
     // Web fonts load late and change the text width — re-measure once they're in,
     // otherwise the loop wraps at the wrong point and looks like it "resets"
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
-    (function mqLoop(){
+    (function mqLoop(now){
       requestAnimationFrame(mqLoop);
-      if (reduceMotion) return;
+      if (!mqLast) mqLast = now;
+      // Real-elapsed-time based step (not a fixed per-frame amount) — this way
+      // heavy scroll/3D work that drops frames can never speed up or slow down
+      // the marquee's visual pace; scrolling never affects how it moves.
+      const dt = Math.min(48, now - mqLast) || 16.6667;
+      mqLast = now;
+      // Reduced-motion visitors get a much slower creep instead of a dead stop —
+      // the banner should always be moving, like a slideshow that never pauses.
+      const speed = reduceMotion ? mqSpeed * 0.2 : mqSpeed;
+      const step = speed * (dt / 16.6667);
       // safety: re-measure every ~5s in case layout shifted (images, zoom, etc.)
       if ((++mqFrame % 300) === 0) measure();
       if (!itemW) { measure(); return; }
-      mqX -= mqSpeed;
+      mqX -= step;
       while (mqX <= -itemW) mqX += itemW;
       while (mqX > 0) mqX -= itemW;
       track.style.transform = 'translate3d(' + mqX + 'px,0,0)';
-    })();
+    })(performance.now());
   }
 
   /* ---------- Copper cursor (desktop only) ---------- */
@@ -4153,6 +4162,9 @@
   catch(e){ canvas.style.display='none'; return; }
   // Low-end friendly: fewer cores / small screens get lighter geometry + lower resolution
   const lowEnd = (navigator.hardwareConcurrency || 8) <= 4 || window.innerWidth < 768;
+  // Mobile gets a still liquid background (frozen shader) with just the ring animating,
+  // recentred closer to the middle of the narrow viewport. Desktop keeps everything moving.
+  const isMobile = window.innerWidth < 768;
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, lowEnd ? 1.25 : 1.6));
 
@@ -4294,12 +4306,18 @@
 
   /* wave2 removed — it rendered as a floating grey slab mid-screen on desktop */
 
+  // On mobile the ring/orb sit exactly on the camera's optical axis (x=0) so a
+  // lookAt-locked camera puts them dead-center on screen no matter the device's
+  // aspect ratio; desktop keeps its original off-to-the-right composition.
+  const ringBaseX = isMobile ? 0 : 3.3;
+  const ringBaseY = 0.4;
+
   // Gold companion orb
   const orb = new THREE.Mesh(
     new THREE.SphereGeometry(0.4, lowEnd ? 48 : 96, lowEnd ? 48 : 96),
     new THREE.MeshStandardMaterial({ color:0xC17A3A, metalness:1, roughness:0.04, envMapIntensity:2.4 })
   );
-  orb.position.set(3.3, 0.4, 0.5);
+  orb.position.set(ringBaseX, ringBaseY, 0.5);
   scene.add(orb);
 
   // Copper ring — now in the star's old spot on the right
@@ -4307,7 +4325,7 @@
     new THREE.TorusGeometry(1.5, 0.12, 64, 200),
     new THREE.MeshStandardMaterial({ color:0xC47E3B, metalness:1, roughness:0.05, envMapIntensity:2.3 })
   );
-  ring.position.set(3.3, 0.4, -1);
+  ring.position.set(ringBaseX, ringBaseY, -1);
   ring.rotation.set(1.0, 0.4, 0);
   scene.add(ring);
 
@@ -4354,15 +4372,17 @@
     if (!visible) return;
     const scroll = window.scrollY / Math.max(1, document.body.scrollHeight - window.innerHeight);
     t += reduce ? 0.0012 : 0.008;
-    uTime.value = t;
+    // Mobile: freeze the liquid-chrome shader so the background reads as still —
+    // only the ring/orb keep animating. Desktop: everything keeps moving as before.
+    if (!isMobile) uTime.value = t;
     mx += (tmx-mx)*0.045; my += (tmy-my)*0.045;
     // smoothed scroll value so the ring's scroll-driven spin never feels jumpy
     smoothScroll += (scroll - smoothScroll) * 0.06;
 
     // the ball drifts gently on the spot where the ring lives, so it always
     // reads as threaded through the ring's hole
-    orb.position.x = 3.3 + Math.cos(t*0.45)*0.3;
-    orb.position.y = 0.4 + Math.sin(t*0.8+2)*0.2;
+    orb.position.x = ringBaseX + Math.cos(t*0.45)*0.3;
+    orb.position.y = ringBaseY + Math.sin(t*0.8+2)*0.2;
 
     // ring smoothly tracks the ball (lerp = no snapping) and stays put while
     // spinning faster the more you scroll
@@ -4375,11 +4395,23 @@
     ringGlow.position.z -= 0.6;
     ringGlow.material.opacity = 0.42 + Math.sin(t*0.9)*0.1;
 
-    dust.rotation.y = t*0.014;
+    // Dust is part of the ambient background too — keep it still on mobile,
+    // let it drift on desktop as before.
+    if (!isMobile) dust.rotation.y = t*0.014;
 
-    camera.position.x = mx*0.4;
-    camera.position.y = 0.5 - my*0.2 - scroll*1.4;
-    camera.lookAt(0.6, -0.3 - scroll*1.0, -2);
+    if (isMobile) {
+      // Camera stays put on mobile — the background (and its shader) reads as
+      // completely still, while the ring/orb still animate in world space.
+      // Looking directly at the ring/orb's anchor point puts it exactly in the
+      // center of the screen regardless of the device's aspect ratio.
+      camera.position.x = 0;
+      camera.position.y = 0.5;
+      camera.lookAt(ringBaseX, ringBaseY, -2);
+    } else {
+      camera.position.x = mx*0.4;
+      camera.position.y = 0.5 - my*0.2 - scroll*1.4;
+      camera.lookAt(0.6, -0.3 - scroll*1.0, -2);
+    }
 
     // Hero owns the top of the page — scene fades in quickly just below it
     const heroEl = document.querySelector('.page.active .hero, .page.active .page-hero') || document.querySelector('.hero');
