@@ -1278,7 +1278,7 @@ a { color: inherit; text-decoration: none; }
           <thead>
             <tr>
               <th>Guest</th><th>Email</th><th>Phone</th><th>Room</th>
-              <th>Check-in</th><th>Check-out</th><th>Nights</th><th>Total</th><th>Status</th><th>Actions</th>
+              <th>Check-in</th><th>Check-out</th><th>Nights</th><th>Total</th><th>Booked On</th><th>Status</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="bookingsTableBody"></tbody>
@@ -2221,6 +2221,20 @@ async function saveCapacity(editId) {
 }
 
 /* ── Bookings ───────────────────────────── */
+/* Original date the booking was made (read-only — never edited anywhere). */
+function _fmtBookedOn(ts, withTime) {
+  if (!ts) return '—';
+  let d = null;
+  if (typeof ts.toDate === 'function') d = ts.toDate();
+  else if (typeof ts.seconds === 'number') d = new Date(ts.seconds * 1000);
+  else if (ts instanceof Date) d = ts;
+  else if (typeof ts === 'string' || typeof ts === 'number') d = new Date(ts);
+  if (!d || isNaN(d.getTime())) return '—';
+  const datePart = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  if (!withTime) return datePart;
+  return datePart + ' · ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
 async function loadBookings() {
   const { db, collection, getDocs, query, orderBy } = window._fb;
   try {
@@ -2253,7 +2267,7 @@ async function loadBookings() {
         <td>${fmtDate(b.checkIn)}<div style="font-size:0.6rem;color:var(--text-dim);">${STAY_TIMES.in}</div></td>
         <td>${fmtDate(b.checkOut)}<div style="font-size:0.6rem;color:var(--text-dim);">${STAY_TIMES.out}</div></td>
         <td style="text-align:center;">${b.nights || '—'}</td>
-        <td>${totalStr}</td>
+        <td style="white-space:nowrap;" title="Date this booking was originally made">${_fmtBookedOn(b.createdAt)}<div style="font-size:0.6rem;color:var(--text-dim);">booked</div></td>
         <td><span class="status-pill ${st === 'pending' ? 'st-pending' : st === 'cancelled' ? 'st-cancelled' : 'st-confirmed'}">${st}</span>${_addOnTags(b.addOns)}</td>
         <td style="white-space:nowrap;">
           <button class="btn btn-outline btn-sm" onclick="openEditBookingDates('${b.id}')" title="Edit dates">✏️ Dates</button>
@@ -2274,6 +2288,7 @@ async function loadBookings() {
         <div class="booking-card-row"><span>Check-in</span><span>${fmtDate(b.checkIn)} · ${STAY_TIMES.in}</span></div>
         <div class="booking-card-row"><span>Check-out</span><span>${fmtDate(b.checkOut)} · ${STAY_TIMES.out}</span></div>
         <div class="booking-card-row"><span>Nights</span><span>${b.nights || '—'}</span></div>
+        <div class="booking-card-row" title="Date this booking was originally made"><span>Booked on</span><span>${_fmtBookedOn(b.createdAt)}</span></div>
         ${(typeof b.adults === 'number') ? `<div class="booking-card-row"><span>Guests</span><span>${b.adults} adult${b.adults!==1?'s':''}${b.children ? ' + ' + b.children + ' child' + (b.children!==1?'ren':'') : ''}</span></div>` : ''}
         ${typeof b.total === 'number' ? `<div class="booking-card-row"><span>Total</span><span style="color:var(--copper-shine);font-weight:700;">$${b.total.toLocaleString()}${b.discountApplied > 0 ? ` <span style="color:var(--success);font-size:0.65rem;">(-$${b.discountApplied})</span>` : ''}</span></div>` : ''}
         <div class="booking-card-row" style="margin-top:0.5rem;">

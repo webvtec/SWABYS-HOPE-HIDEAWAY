@@ -3948,9 +3948,22 @@ if (!window._localToday) {
       return new Date(+p[0], +p[1]-1, +p[2]).toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
     }
 
+    /* Original date the booking was made (read-only — display only). */
+    function _fmtBookedOn(ts) {
+      if (!ts) return null;
+      let d = null;
+      if (typeof ts.toDate === 'function') d = ts.toDate();
+      else if (typeof ts.seconds === 'number') d = new Date(ts.seconds * 1000);
+      else if (ts instanceof Date) d = ts;
+      else if (typeof ts === 'string' || typeof ts === 'number') d = new Date(ts);
+      if (!d || isNaN(d.getTime())) return null;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
     function _bookingCardHtml(b, isPast) {
       const st = b.status || 'confirmed';
       const stColor = st === 'cancelled' ? '#DC2626' : st === 'pending' ? '#D97706' : '#059669';
+      const bookedOn = _fmtBookedOn(b.createdAt);
       const meta = _fmtStayDate(b.checkIn) + ' → ' + _fmtStayDate(b.checkOut)
         + (b.nights ? ' · ' + b.nights + ' night' + (b.nights !== 1 ? 's' : '') : '')
         + (typeof b.total === 'number' ? ' · $' + b.total.toLocaleString() : '');
@@ -3960,7 +3973,8 @@ if (!window._localToday) {
           <span style="font-size:0.58rem;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:${stColor};background:${stColor}18;padding:2px 8px;border-radius:20px;border:1px solid ${stColor}30;white-space:nowrap;">${st}</span>
         </div>
         <div style="font-size:0.76rem;color:var(--text-muted);margin-bottom:0.35rem;line-height:1.5;">${meta}</div>
-        <div style="font-size:0.68rem;color:var(--text-muted);opacity:0.85;margin-bottom:0.7rem;">In from ${STAY_TIMES.in} · Out by ${STAY_TIMES.out}</div>
+        <div style="font-size:0.68rem;color:var(--text-muted);opacity:0.85;margin-bottom:0.35rem;">In from ${STAY_TIMES.in} · Out by ${STAY_TIMES.out}</div>
+        ${bookedOn ? `<div style="font-size:0.66rem;color:var(--text-muted);opacity:0.8;margin-bottom:0.7rem;">Booked on ${bookedOn}</div>` : '<div style="height:0.35rem;"></div>'}
         <div style="display:flex;gap:0.45rem;flex-wrap:wrap;">
           <button onclick="openServiceRequest('${b.id}')" style="flex:1;min-width:130px;font-size:0.68rem;color:var(--copper);background:rgba(184,115,51,0.06);border:1px solid rgba(184,115,51,0.28);border-radius:6px;padding:6px 10px;cursor:pointer;font-family:var(--font-body);font-weight:700;letter-spacing:0.05em;text-transform:uppercase;">+ Add Services</button>
           ${(!isPast && st !== 'cancelled') ? `<button onclick="cancelMyBooking('${b.id}')" style="font-size:0.68rem;color:#DC2626;background:none;border:1px solid rgba(220,38,38,0.25);border-radius:6px;padding:6px 12px;cursor:pointer;font-family:var(--font-body);font-weight:600;">Cancel</button>` : ''}
