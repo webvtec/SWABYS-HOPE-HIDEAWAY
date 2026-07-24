@@ -2929,6 +2929,10 @@
           <label for="formOtherEventType" class="form-label">Please describe your event <span class="required">*</span></label>
           <input type="text" class="form-input" placeholder="e.g. Graduation party, baby shower, anniversary..." id="formOtherEventType" />
         </div>
+        <div class="form-group" id="eiServicesWrap">
+          <label class="form-label">Services Needed <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted);font-size:0.72rem;">(optional — we'll confirm pricing separately)</span></label>
+          <div id="eiServicesList" style="display:grid;gap:0.45rem;"></div>
+        </div>
         <div class="form-group"><label for="formRequests" class="form-label">Special Requests or Details</label><textarea class="form-textarea" placeholder="Tell us about your vision for the event..." id="formRequests" style="min-height:80px;"></textarea></div>
         <button class="btn-primary form-submit" id="eiSubmitBtn" onclick="handleFormSubmit()" style="width:100%;justify-content:center;margin-top:0.5rem;">
           Submit Inquiry
@@ -3933,7 +3937,10 @@ if (!window._localToday) {
     const SERVICE_CATALOG = [
       { id: 'island_tour',   label: 'Island Tour Adventure Package', desc: 'Waterfalls, river rafting, Blue Mountain drives & more — guided day trips.', icon: '🌴' },
       { id: 'airport',       label: 'Airport Pickup & Drop-off',     desc: 'Private transfer to and from your arrival airport.',                        icon: '✈️' },
+      { id: 'room_service',  label: 'Room Service',                  desc: 'In-room dining, late-night bites and extras delivered straight to your door.', icon: '🛎️' },
       { id: 'family_retreat',label: 'Family Retreat',                desc: 'Multi-room stays with group dining, activities and kid-friendly planning.', icon: '👨‍👩‍👧‍👦' },
+      { id: 'event_planning',label: 'Event Planning',                desc: 'Weddings, retreats, corporate days and celebrations planned on property.',  icon: '🎉' },
+      { id: 'gift_voucher',  label: 'Gift Vouchers',                 desc: 'Give a stay or an experience as a gift — we handle the rest.',              icon: '🎁' },
       { id: 'other',         label: 'Something Else',                desc: 'Tell us what you have in mind and we will try to arrange it.',              icon: '✦' }
     ];
 
@@ -4077,6 +4084,29 @@ if (!window._localToday) {
         { key: 'children', label: 'Children',          type: 'number', value: 0, min: 0, half: true },
         { key: 'occasion', label: 'Occasion',          type: 'text',   placeholder: 'e.g. reunion, birthday, anniversary' },
         { key: 'wants',    label: 'Interested in',     type: 'text',   placeholder: 'e.g. group dinners, kids activities, tours' }
+      ],
+      room_service: [
+        { key: 'items',    label: 'What would you like?', type: 'text', placeholder: 'e.g. breakfast for two, fruit platter, extra towels', required: true },
+        { key: 'date',     label: 'Date',                 type: 'date',   half: true },
+        { key: 'time',     label: 'Preferred time',       type: 'time',   half: true },
+        { key: 'guests',   label: 'Serving how many?',    type: 'number', value: 2, min: 1, half: true },
+        { key: 'room',     label: 'Room / villa',         type: 'text',   placeholder: 'If you already know it', half: true }
+      ],
+      event_planning: [
+        { key: 'eventType', label: 'Type of event', type: 'select', options: [
+            'Wedding', 'Corporate Conference', 'Birthday Celebration',
+            'Family Reunion', 'Retreat / Workshop', 'Other'
+        ]},
+        { key: 'date',      label: 'Preferred date',   type: 'date',   half: true },
+        { key: 'guests',    label: 'Estimated guests', type: 'number', value: 20, min: 1, half: true },
+        { key: 'needs',     label: 'What do you need?', type: 'text',  placeholder: 'e.g. catering, décor, sound, accommodation for guests' }
+      ],
+      gift_voucher: [
+        { key: 'kind',      label: 'Voucher for',    type: 'select', options: ['A stay', 'An experience / tour', 'Open value'] },
+        { key: 'amount',    label: 'Value (USD)',    type: 'text',   placeholder: 'e.g. 250', half: true },
+        { key: 'sendDate',  label: 'Send by',        type: 'date',   half: true },
+        { key: 'recipient', label: 'Recipient name', type: 'text',   placeholder: 'Who is it for?', required: true },
+        { key: 'occasion',  label: 'Occasion',       type: 'text',   placeholder: 'e.g. birthday, anniversary, thank you' }
       ],
       other: [
         { key: 'what', label: 'What are you looking for?', type: 'text', placeholder: 'Tell us in a few words', required: true },
@@ -4323,7 +4353,10 @@ if (!window._localToday) {
     const BM_ADDON_PLACEHOLDER = {
       island_tour:    'Which tour, preferred day, pickup time, how many guests…',
       airport:        'Airport, arrival date & time, flight number, passengers, and whether you need the return drop-off…',
-      family_retreat: 'Group size, ages of children, occasion, any group dining or activities…'
+      family_retreat: 'Group size, ages of children, occasion, any group dining or activities…',
+      room_service:   'What you would like, which day, what time, and how many people…',
+      event_planning: 'Type of event, date, guest count, and what you need from us…',
+      gift_voucher:   'Who it is for, the value, the occasion, and when you need it by…'
     };
 
     function _renderBmAddOns() {
@@ -4514,6 +4547,7 @@ if (!window._localToday) {
       const et = document.getElementById('formEventType'); if (et) et.selectedIndex = 0;
       const otherWrap = document.getElementById('otherEventTypeWrap'); if (otherWrap) otherWrap.style.display = 'none';
       const otherInput = document.getElementById('formOtherEventType'); if (otherInput) otherInput.value = '';
+      _eiSvcSel = {}; _renderEiServices();
       const now = new Date(); _eiCalMonth = now.getMonth(); _eiCalYear = now.getFullYear();
       renderEiCalendar();
       updateEiAuthBar();
@@ -4628,6 +4662,42 @@ if (!window._localToday) {
     /* ════════════════════════════════════════
        EVENT INQUIRY FORM
     ════════════════════════════════════════ */
+    /* ══════ EVENT INQUIRY — OPTIONAL SERVICES ══════ */
+    let _eiSvcSel = {};
+
+    function _eiServiceList() {
+      // Everything except the catch-all and Event Planning (the form itself is the event enquiry)
+      return SERVICE_CATALOG.filter(sv => sv.id !== 'other' && sv.id !== 'event_planning');
+    }
+
+    function _renderEiServices() {
+      const wrap = document.getElementById('eiServicesList');
+      if (!wrap) return;
+      wrap.innerHTML = _eiServiceList().map(sv => {
+        const on = !!_eiSvcSel[sv.id];
+        return `<div onclick="toggleEiService('${sv.id}')" style="display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0.8rem;border:1.5px solid ${on ? 'var(--copper)' : '#E8E4DE'};background:${on ? 'rgba(184,115,51,0.05)' : '#fff'};border-radius:8px;cursor:pointer;transition:all 0.18s;">
+          <span style="width:18px;height:18px;border-radius:5px;border:1.5px solid ${on ? 'var(--copper)' : '#D8D2CA'};background:${on ? 'var(--copper)' : '#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">${on ? '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}</span>
+          <span style="font-size:1rem;flex-shrink:0;">${sv.icon}</span>
+          <span style="font-size:0.8rem;font-weight:600;color:${on ? 'var(--copper)' : 'var(--text-primary)'};line-height:1.3;">${sv.label}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function toggleEiService(id) {
+      if (_eiSvcSel[id]) delete _eiSvcSel[id];
+      else _eiSvcSel[id] = true;
+      _renderEiServices();
+    }
+
+    function _collectEiServices() {
+      return _eiServiceList()
+        .filter(sv => _eiSvcSel[sv.id])
+        .map(sv => ({ id: sv.id, label: sv.label }));
+    }
+
+    window.toggleEiService = toggleEiService;
+    try { _renderEiServices(); } catch (e) {}
+
     async function handleFormSubmit() {
       const name = document.getElementById('formName').value.trim();
       const email = document.getElementById('formEmail').value.trim();
@@ -4677,6 +4747,7 @@ if (!window._localToday) {
           estimatedGuests: parseInt(guests),
           preferredDate: date || null,
           specialRequests: requests || null,
+          servicesNeeded: _collectEiServices(),
           uid: user?.uid || null, authEmail: user?.email || null,
           status: 'new', createdAt: serverTimestamp()
         });
